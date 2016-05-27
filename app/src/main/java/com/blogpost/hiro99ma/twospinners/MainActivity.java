@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
 
         Spinner spinMain = (Spinner) this.findViewById(R.id.spin_main_category);
         mSpinSub = (Spinner) this.findViewById(R.id.spin_sub_category);
-        mAdapterSub = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item);
+        mAdapterSub = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item);
         if ((spinMain == null) || (mSpinSub == null)) {
             mSpinSub = null;
             mAdapterSub = null;

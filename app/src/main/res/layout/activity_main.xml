@@ -25,7 +25,6 @@
         <Spinner
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:entries="@array/strings_category_main"
             android:id="@+id/spin_main_category"/>
 
         <Spinner

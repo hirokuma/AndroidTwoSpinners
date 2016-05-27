@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">TwoSpinners</string>
+
+    <string-array name="strings_category_main">
+        <item>main1</item>
+        <item>main2</item>
+        <item>main3</item>
+    </string-array>
+</resources>

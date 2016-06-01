@@ -59,7 +59,10 @@ public class Test3 implements ITestForm {
                     return "sub3-4";
                 }
                 @Override
-                public void execute(MainActivity activity) { Log.d(MAIN_CATEGORY_NAME, "test sub3-4"); }
+                public void execute(MainActivity activity) {
+                    Toast.makeText(activity, "TEST sub3-4", Toast.LENGTH_LONG).show();
+                    Log.d(MAIN_CATEGORY_NAME, "test sub3-4");
+                }
             },
     };
 

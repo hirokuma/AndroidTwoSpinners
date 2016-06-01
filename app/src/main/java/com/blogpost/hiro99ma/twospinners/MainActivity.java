@@ -9,12 +9,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 
-interface ICommand {
-    ///spinnerのアイテム名
-    String name();
-    ///実行する内容
-    void execute();
-}
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,148 +18,18 @@ public class MainActivity extends AppCompatActivity {
     private int mMainCategoryIdx = 0;
     private int mSubCategoryIdx = 0;
 
-    private ICommand[][] mExecCommands = new ICommand[][] {
-        //main1
-        new ICommand[] {
-                //main1
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "main1";
-                    }
-                    @Override
-                    public void execute() {}
-                },
-                //main2
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "main2";
-                    }
-                    @Override
-                    public void execute() {}
-                },
-                //main3
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "main3";
-                    }
-                    @Override
-                    public void execute() {}
-                },
+    private Command[][] mExecCommands = new Command[][] {
+        //main category names
+        new Command[] {
+                Test1.TEST_MAIN_CATEGORY,
+                Test2.TEST_MAIN_CATEGORY,
+                Test3.TEST_MAIN_CATEGORY,
         },
 
-        //main1
-        new ICommand[] {
-                //sub1-1
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub1-1";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main1", "sub1-1");
-                    }
-                },
-                //sub1-2
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub1-2";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main1", "sub1-2");
-                    }
-                },
-                //sub1-3
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub1-3";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main1", "sub1-3");
-                    }
-                },
-        },
-
-        //main2
-        new ICommand[] {
-                //sub2-1
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub2-1";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main2", "sub2-1");
-                    }
-                },
-                //sub2-2
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub2-2";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main2", "sub2-2");
-                    }
-                },
-        },
-
-        //main3
-        new ICommand[] {
-                //sub3-1
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub3-1";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main3", "sub3-1");
-                    }
-                },
-                //sub3-2
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub3-2";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main3", "sub3-2");
-                    }
-                },
-                //sub3-3
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub3-3";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main3", "sub3-3");
-                    }
-                },
-                //sub3-4
-                new ICommand() {
-                    @Override
-                    public String name() {
-                        return "sub3-4";
-                    }
-                    @Override
-                    public void execute() {
-                        Log.d("main3", "sub3-4");
-                    }
-                },
-        },
+       //sub categories
+       Test1.TEST_SUB_CATEGORY,
+       Test2.TEST_SUB_CATEGORY,
+       Test3.TEST_SUB_CATEGORY,
     };
 
     @Override
@@ -185,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
 
         //main category
         ArrayAdapter adapterMain = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item);
-        for (ICommand cmd : mExecCommands[0]) {
+        for (Command cmd : mExecCommands[0]) {
             adapterMain.add(cmd.name());
         }
         spinMain.setAdapter(adapterMain);
@@ -197,8 +61,11 @@ public class MainActivity extends AppCompatActivity {
                 mSubCategoryIdx = 0;
 
                 mAdapterSub.clear();
-                for (ICommand cmd : mExecCommands[mMainCategoryIdx + 1]) {
+                //int idx = 1;
+                for (Command cmd : mExecCommands[mMainCategoryIdx + 1]) {
                     mAdapterSub.add(cmd.name());
+                    //mAdapterSub.add(String.valueOf(idx) + "." + cmd.name());
+                    //idx++;
                 }
                 mSpinSub.setAdapter(mAdapterSub);
             }
@@ -224,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d("EXEC " + String.valueOf(mMainCategoryIdx + 1) + "-" + String.valueOf(mSubCategoryIdx + 1), "[" + mSpinSub.getSelectedItem().toString() + "]");
                 mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute();
             }
         });

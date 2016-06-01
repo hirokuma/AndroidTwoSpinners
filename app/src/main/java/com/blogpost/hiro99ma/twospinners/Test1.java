@@ -3,27 +3,25 @@ package com.blogpost.hiro99ma.twospinners;
 import android.util.Log;
 
 /**
- * Created by hiroshi on 2016/06/01.
+ * Created on 2016/06/01.
  */
-public class Test1 {
-    static String MAIN_CATEGORY_NAME = "main1";
+public class Test1 implements ITestForm {
+    private static final Test1 mInstance = new Test1();
+    public static Test1 getInstance() { return mInstance; }
+    private Test1() {}
 
-    static final Command TEST_MAIN_CATEGORY = new Command() {
-        @Override
-        String name() {
-            return MAIN_CATEGORY_NAME;
-        }
-    };
+    private static final String MAIN_CATEGORY_NAME = "main1";
 
-    static final Command[] TEST_SUB_CATEGORY = new Command[] {
+    private static final Command[] SUB_CATEGORY = new Command[]{
             //sub1-1
             new Command() {
                 @Override
                 public String name() {
                     return "sub1-1";
                 }
+
                 @Override
-                public void execute() {
+                public void execute(MainActivity activity) {
                     Log.d(MAIN_CATEGORY_NAME, "sub1-1");
                 }
             },
@@ -33,8 +31,9 @@ public class Test1 {
                 public String name() {
                     return "sub1-2";
                 }
+
                 @Override
-                public void execute() {
+                public void execute(MainActivity activity) {
                     Log.d(MAIN_CATEGORY_NAME, "sub1-2");
                 }
             },
@@ -44,11 +43,21 @@ public class Test1 {
                 public String name() {
                     return "sub1-3";
                 }
+
                 @Override
-                public void execute() {
+                public void execute(MainActivity activity) {
                     Log.d(MAIN_CATEGORY_NAME, "sub1-3");
                 }
             },
     };
 
+    @Override
+    public String getCategoryName() {
+        return MAIN_CATEGORY_NAME;
+    }
+
+    @Override
+    public Command[] getSubCategory() {
+        return SUB_CATEGORY;
+    }
 }

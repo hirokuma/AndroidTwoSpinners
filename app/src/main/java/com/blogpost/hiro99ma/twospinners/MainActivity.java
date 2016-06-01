@@ -14,7 +14,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Spinner mSpinSub;
     private ArrayAdapter<String> mAdapterSub;
-    private MainActivity mainActivity;
 
     private int mMainCategoryIdx = 0;
     private int mSubCategoryIdx = 0;
@@ -31,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mainActivity = this;
 
         mExecCommands = new Command[mTestForm.length + 1][];
         mExecCommands[0] = new Command[mTestForm.length];
@@ -106,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d("EXEC " + String.valueOf(mMainCategoryIdx + 1) + "-" + String.valueOf(mSubCategoryIdx + 1), "[" + mSpinSub.getSelectedItem().toString() + "]");
-                mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(mainActivity);
+                mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this);
             }
         });
     }

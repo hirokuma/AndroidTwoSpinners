@@ -37,5 +37,24 @@
             android:layout_height="wrap_content"
             android:text="Execute"
             android:id="@+id/button_exec"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/text_result"
+            android:background="#fcdada"/>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Scan"
+            android:id="@+id/button_scan"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="New Text"
+            android:id="@+id/textView3"
+            android:background="#d8f1fd"/>
     </LinearLayout>
 </RelativeLayout>

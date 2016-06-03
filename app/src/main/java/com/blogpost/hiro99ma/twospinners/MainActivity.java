@@ -1,6 +1,9 @@
 package com.blogpost.hiro99ma.twospinners;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.app.FragmentManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -15,10 +18,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.app.AlertDialog;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,20 +32,18 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.blogpost.hiro99ma.Constants;
+import com.blogpost.hiro99ma.PeripheralSelectDialogFragment;
 import com.blogpost.hiro99ma.ScanFilterFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
     //BLE
     private static final int REQUEST_LOCATION = 0;
-    private BluetoothAdapter mBluetoothAdapter = null;
-    private BluetoothLeScanner scanner = null;
     private boolean permissions_granted=false;
-    private boolean mScanning = false;
-    private ListAdapter mLeDeviceListAdapter;
+    private BluetoothAdapter mBluetoothAdapter = null;
     //BLE
 
 
@@ -152,35 +152,12 @@ public class MainActivity extends AppCompatActivity {
         buttonScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // check bluetooth is available on on
-                if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                    startActivity(enableBtIntent);
-                    return;
-                }
-                Log.d(Constants.TAG, "Bluetooth is switched on");
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                            != PackageManager.PERMISSION_GRANTED) {
-                        permissions_granted = false;
-                        requestLocationPermission();
-                    } else {
-                        Log.i(Constants.TAG, "Location permission has already been granted. Starting scanning.");
-                        permissions_granted = true;
-                    }
-                } else {
-                    // the ACCESS_COARSE_LOCATION permission did not exist before M so....
-                    permissions_granted = true;
-                }
+                //start BLE Scan
                 if (permissions_granted) {
-                    if (!mScanning) {
-                        scanLeDevices();
-                    } else {
-                        setScanState(false);
-                        scanner.stopScan(mLeScanCallback);
-                    }
+                    PeripheralSelectDialogFragment dlg = new PeripheralSelectDialogFragment();
+                    dlg.setBluetoothAdapter(mBluetoothAdapter);
+                    dlg.show(getFragmentManager(), "fire");
                 }
-
             }
         });
     }
@@ -193,19 +170,29 @@ public class MainActivity extends AppCompatActivity {
         final BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
 
-        //Scanした機器一覧のリスト
-        mLeDeviceListAdapter = new ListAdapter();
+        // BLE enable ?
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivity(enableBtIntent);
+            return;
+        }
+        Log.d(Constants.TAG, "Bluetooth is switched on");
 
-    }
-
-    private void setScanState(boolean value) {
-        mScanning = value;
-        ((Button)this.findViewById(R.id.button_scan)).setText(value ? "Stop" : "Scan");
-//        if (mScanning) {
-//            showMsg("Scanning...");
-//        } else {
-//            showMsg("");
-//        }
+        //have Locate Permission ?
+        //https://developer.android.com/reference/android/os/Build.VERSION_CODES.html?hl=ja#M
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissions_granted = false;
+                requestLocationPermission();
+            } else {
+                Log.i(Constants.TAG, "Location permission has already been granted. Starting scanning.");
+                permissions_granted = true;
+            }
+        } else {
+            // the ACCESS_COARSE_LOCATION permission did not exist before M so....
+            permissions_granted = true;
+        }
     }
 
 
@@ -213,19 +200,23 @@ public class MainActivity extends AppCompatActivity {
     private void requestLocationPermission() {
         Log.i(Constants.TAG, "Location permission has NOT yet been granted. Requesting permission.");
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)){
+            Log.i(Constants.TAG, "■shouldShowRequestPermissionRationale : true");
+            //2回目以降は説明ダイアログを表示してから位置情報許可を求めている
             Log.i(Constants.TAG, "Displaying location permission rationale to provide additional context.");
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Permission Required");
-            builder.setMessage("Please grant Location access so this application can perform Bluetooth scanning");
+            builder.setTitle("許可がいるのです");
+            builder.setMessage("アプリの位置情報を許可しないと、BLE機器のスキャンができません");
             builder.setPositiveButton(android.R.string.ok, null);
             builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 public void onDismiss(DialogInterface dialog) {
+                    //位置情報許可を求める
                     Log.d(Constants.TAG, "Requesting permissions after explanation");
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_LOCATION);
                 }
             });
             builder.show();
         } else {
+            //初回
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_LOCATION);
         }
     }
@@ -240,116 +231,14 @@ public class MainActivity extends AppCompatActivity {
                 // Location permission has been granted
                 Log.i(Constants.TAG, "Location permission has now been granted. Scanning.....");
                 permissions_granted = true;
-
-                //Scan開始
-                scanLeDevices();
             } else {
                 Log.i(Constants.TAG, "Location permission was NOT granted.");
-                //showMsg("Required permissions not granted so cannot start");
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
 
-    //Scan動作の本体
-    private void scanLeDevices() {
-        scanner = mBluetoothAdapter.getBluetoothLeScanner();
-        List<ScanFilter> filters;
-        filters = new ArrayList<ScanFilter>();
-        ScanFilterFactory filter_factory = ScanFilterFactory.getInstance();
-        filters.add(filter_factory.getScanFilter());
-        ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-        if (permissions_granted) {
-            setScanState(true);
-            scanner.startScan(filters, settings, mLeScanCallback);
-        } else {
-            Log.d(Constants.TAG,"Application lacks permission to start Bluetooth scanning");
-        }
-    }
-
-    //Scan結果のコールバック関数
-    private ScanCallback mLeScanCallback = new ScanCallback() {
-        public void onScanResult(int callbackType, final ScanResult result) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Log.d("scancb", result.getDevice().getName());
-                    mLeDeviceListAdapter.addDevice(result.getDevice());
-                    mLeDeviceListAdapter.notifyDataSetChanged();
-                }
-            });
-        }
-    };
-
-
-
-    static class ViewHolder {
-        public TextView text;
-    }
-
-    //Scanした結果の機器リスト用
-    // adaptor
-    private class ListAdapter extends BaseAdapter {
-        private ArrayList<BluetoothDevice> mLeDevices;
-
-        public ListAdapter() {
-            super();
-            mLeDevices = new ArrayList<BluetoothDevice>();
-        }
-
-        public void addDevice(BluetoothDevice device) {
-            if (!mLeDevices.contains(device)) {
-                mLeDevices.add(device);
-            }
-        }
-
-        public BluetoothDevice getDevice(int position) {
-            return mLeDevices.get(position);
-        }
-
-        public void clear() {
-            mLeDevices.clear();
-        }
-
-        @Override
-        public int getCount() {
-            return mLeDevices.size();
-        }
-
-        @Override
-        public Object getItem(int i) {
-            return mLeDevices.get(i);
-        }
-
-        @Override
-        public long getItemId(int i) {
-            return i;
-        }
-
-        @Override
-        public View getView(int i, View view, ViewGroup viewGroup) {
-//            ViewHolder viewHolder;
-//            // General ListView optimization code.
-//            if (view == null) {
-//                view = MainActivity.this.getLayoutInflater().inflate(R.layout.list_row, null);
-//                viewHolder = new ViewHolder();
-//                viewHolder.text = (TextView)view.findViewById(R.id.textView);
-//                view.setTag(viewHolder);
-//            } else {
-//                viewHolder = (ViewHolder)view.getTag();
-//            }
-//            BluetoothDevice device = mLeDevices.get(i);
-//            final String deviceName = device.getName();
-//            if ((deviceName != null) && (deviceName.length() > 0)) {
-//                viewHolder.text.setText(deviceName);
-//            } else {
-//                viewHolder.text.setText("unknown device");
-//            }
-
-            return view;
-        }
-    }
     //BLE
     /////////////////////////////////////////////////////////////////////////////////////////
 }

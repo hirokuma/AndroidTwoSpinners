@@ -23,14 +23,14 @@ public class ScanFilterFactory {
         //検索結果のフィルタ
         //https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder.html
 
-        //フィルタ無し
+        //none
         return new ScanFilter.Builder().build();
 
-        //デバイス名
+        //Device Name
         //String device_name = "検索するDeviceName";
         //return new ScanFilter.Builder().setDeviceName(device_name).build();
 
-        //デバイスアドレス
+        //Device Address
         //return new ScanFilter.Builder().setDeviceAddress("").build();
 
         //Manufacturer Data

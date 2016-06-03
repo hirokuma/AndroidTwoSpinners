@@ -1,5 +1,5 @@
 package com.blogpost.hiro99ma;
-import android.util.Log;
+
 public class Utility {
 
     private static final String BLUETOOTH_SIG_UUID_BASE = "0000XXXX-0000-1000-8000-00805f9b34fb";

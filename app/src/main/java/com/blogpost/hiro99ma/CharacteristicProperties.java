@@ -1,5 +1,4 @@
 package com.blogpost.hiro99ma;
-import android.util.Log;
 
 /**
  * Created by mwoolley on 16/02/2015.

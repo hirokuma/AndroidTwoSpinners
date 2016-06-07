@@ -16,7 +16,10 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import com.blogpost.hiro99ma.twospinners.R;
@@ -30,7 +33,6 @@ import java.util.List;
 public class PeripheralSelectDialogFragment extends DialogFragment {
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothLeScanner scanner = null;
-    private boolean mScanning = false;
     private ListAdapter mLeDeviceListAdapter = new ListAdapter();
 
     public void setBluetoothAdapter(BluetoothAdapter bluetoothAdapter) {
@@ -41,6 +43,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        //ダイアログ表示中はスキャンし続ける
         scanLeDevices();
 
         // Use the Builder class for convenient dialog construction
@@ -50,24 +53,24 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
                 .setSingleChoiceItems(mLeDeviceListAdapter, -1, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Log.d("ListView", "onClick");
+                        Log.d("ListView", "setAdapter - onClick");
                     }
                 })
                 .setPositiveButton(R.string.fire, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // FIRE ZE MISSILES!
                         Log.d("dialog", "ok button");
-                        setScanState(false);
-                        scanner.stopScan(mLeScanCallback);                    }
+                        scanner.stopScan(mLeScanCallback);
+                    }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // User cancelled the dialog
                         Log.d("dialog", "cancel button");
-                        setScanState(false);
                         scanner.stopScan(mLeScanCallback);
                     }
                 });
+
         // Create the AlertDialog object and return it
         return builder.create();
     }
@@ -76,18 +79,16 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
     public void onDismiss(DialogInterface dialog) {
         super.onDismiss(dialog);
         Log.d("dialog", "onDismiss");
-        setScanState(false);
-        scanner.stopScan(mLeScanCallback);    }
+        scanner.stopScan(mLeScanCallback);
+    }
 
     //Scan動作の本体
     private void scanLeDevices() {
         scanner = mBluetoothAdapter.getBluetoothLeScanner();
-        List<ScanFilter> filters;
-        filters = new ArrayList<ScanFilter>();
+        List<ScanFilter> filters = new ArrayList<>();
         ScanFilterFactory filter_factory = ScanFilterFactory.getInstance();
         filters.add(filter_factory.getScanFilter());
         ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-        setScanState(true);
         scanner.startScan(filters, settings, mLeScanCallback);
     }
 
@@ -100,28 +101,19 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
         }
     };
 
-    private void setScanState(boolean value) {
-        mScanning = value;
-//        ((Button)this.findViewById(R.id.button_scan)).setText(value ? "Stop" : "Scan");
-//        if (mScanning) {
-//            showMsg("Scanning...");
-//        } else {
-//            showMsg("");
-//        }
-    }
 
+    //リスト1行分
     static class ViewHolder {
         public TextView text;
     }
 
-    //Scanした結果の機器リスト用
-    // adaptor
+    //Scanした結果のadaptor
     private class ListAdapter extends BaseAdapter {
         private ArrayList<BluetoothDevice> mLeDevices;
 
         public ListAdapter() {
             super();
-            mLeDevices = new ArrayList<BluetoothDevice>();
+            mLeDevices = new ArrayList<>();
         }
 
         public void addDevice(BluetoothDevice device) {
@@ -158,7 +150,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
             ViewHolder viewHolder;
             // General ListView optimization code.
             if (view == null) {
-                view = PeripheralSelectDialogFragment.this.getActivity().getLayoutInflater().inflate(android.R.layout.simple_list_item_1, null);
+                view = PeripheralSelectDialogFragment.this.getActivity().getLayoutInflater().inflate(android.R.layout.simple_list_item_single_choice, null);
                 viewHolder = new ViewHolder();
                 viewHolder.text = (TextView)view.findViewById(android.R.id.text1);
                 view.setTag(viewHolder);
@@ -170,7 +162,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
             if ((deviceName != null) && (deviceName.length() > 0)) {
                 viewHolder.text.setText(deviceName);
             } else {
-                viewHolder.text.setText("unknown device");
+                viewHolder.text.setText(R.string.ble_unknown_device);
             }
 
             return view;

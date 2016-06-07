@@ -325,8 +325,7 @@ public class BleAdapterService extends Service {
         mDescriptor = gattChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
         Log.d(Constants.TAG, "XXXX Descriptor:" + mDescriptor.getUuid());
         mDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-        boolean ok = mBluetoothGatt.writeDescriptor(mDescriptor);
-        return ok;
+        return mBluetoothGatt.writeDescriptor(mDescriptor);
     }
 
     public boolean setIndicationsState(String serviceUuid, String characteristicUuid, boolean enabled) {
@@ -350,8 +349,7 @@ public class BleAdapterService extends Service {
         mDescriptor = gattChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
         Log.d(Constants.TAG, "XXXX Descriptor:" + mDescriptor.getUuid());
         mDescriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-        boolean ok = mBluetoothGatt.writeDescriptor(mDescriptor);
-        return ok;
+        return mBluetoothGatt.writeDescriptor(mDescriptor);
     }
 
     public void readRemoteRssi() {

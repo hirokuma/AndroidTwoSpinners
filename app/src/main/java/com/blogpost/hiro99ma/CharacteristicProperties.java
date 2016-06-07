@@ -39,11 +39,7 @@ public class CharacteristicProperties {
         if (!characteristic_uuid.equals(that.characteristic_uuid)) {
             return false;
         }
-        if (!service_uuid.equals(that.service_uuid)) {
-            return false;
-        }
-
-        return true;
+        return service_uuid.equals(that.service_uuid);
     }
 
     @Override

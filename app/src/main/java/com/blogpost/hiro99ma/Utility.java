@@ -49,7 +49,7 @@ public class Utility {
             String h1 = hex.substring(i, i + 1);
             String h2 = hex.substring(i + 1, i + 2);
             try {
-                int b = (Integer.valueOf(h1, 16).intValue() * 16) + (Integer.valueOf(h2, 16).intValue());
+                int b = (Integer.valueOf(h1, 16) * 16) + (Integer.valueOf(h2, 16));
                 bytes[j++] = (byte) b;
                 i = i + 2;
             } catch (NumberFormatException e) {
@@ -65,12 +65,20 @@ public class Utility {
         if (bytes == null) {
             return "";
         }
-        int l = bytes.length;
-        StringBuffer hex = new StringBuffer();
-        for (int i = 0; i < l; i++) {
-            if ((bytes[i] >= 0) & (bytes[i] < 16))
+//        int l = bytes.length;
+//        StringBuffer hex = new StringBuffer();
+//        for (int i = 0; i < l; i++) {
+//            if ((bytes[i] >= 0) & (bytes[i] < 16)) {
+//                hex.append("0");
+//            }
+//            hex.append(Integer.toString(bytes[i] & 0xff, 16).toUpperCase());
+//        }
+        StringBuilder hex = new StringBuilder();
+        for (byte bt : bytes) {
+            if ((bt >= 0) && (bt < 16)) {
                 hex.append("0");
-            hex.append(Integer.toString(bytes[i] & 0xff, 16).toUpperCase());
+            }
+            hex.append(Integer.toString(bt & 0xff, 16).toUpperCase());
         }
         return hex.toString();
     }

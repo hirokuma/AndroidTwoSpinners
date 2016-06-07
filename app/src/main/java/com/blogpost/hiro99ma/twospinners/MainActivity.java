@@ -73,17 +73,16 @@ public class MainActivity extends Activity {
 
         Spinner spinMain = (Spinner) this.findViewById(R.id.spin_main_category);
         mSpinSub = (Spinner) this.findViewById(R.id.spin_sub_category);
-        mAdapterSub = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item);
+        mAdapterSub = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item);
         Button buttonExec = (Button)findViewById(R.id.button_exec);
-        Button buttonScan = (Button)findViewById(R.id.button_scan);
-        if ((spinMain == null) || (mSpinSub == null) || (buttonExec == null) || (buttonScan == null)) {
+        if ((spinMain == null) || (mSpinSub == null) || (buttonExec == null)) {
             mSpinSub = null;
             mAdapterSub = null;
             return;
         }
 
         //main category
-        ArrayAdapter<String> adapterMain = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> adapterMain = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item);
         for (Command cmd : mExecCommands[0]) {
             if (cmd != null) {
                 adapterMain.add(cmd.name());
@@ -134,6 +133,7 @@ public class MainActivity extends Activity {
         });
 
         //button : execute Scan
+        Button buttonScan = (Button)findViewById(R.id.button_scan);
         buttonScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

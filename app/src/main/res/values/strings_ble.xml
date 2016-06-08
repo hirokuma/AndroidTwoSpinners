@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fire">燃えよ</string>
-    <string name="cancel">キャンセル</string>
-    <string name="dialog_fire_missiles">ミサイル発射？</string>
+    <string name="ble_connect">接続</string>
 
     <string name="ble_unknown_device">unknown device</string>
 </resources>

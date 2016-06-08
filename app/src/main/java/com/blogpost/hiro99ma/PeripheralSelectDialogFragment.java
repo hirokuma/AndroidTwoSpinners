@@ -19,6 +19,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
@@ -34,6 +35,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothLeScanner scanner = null;
     private ListAdapter mLeDeviceListAdapter = new ListAdapter();
+    //private int mSelect = AdapterView.INVALID_POSITION;
 
     public void setBluetoothAdapter(BluetoothAdapter bluetoothAdapter) {
         mBluetoothAdapter = bluetoothAdapter;
@@ -50,20 +52,32 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
         builder.setTitle(R.string.app_name)
+                //onClick()してもダイアログを閉じたくないのでsetSingleChoiceItems()を使う(邪道かもしれん)
                 .setSingleChoiceItems(mLeDeviceListAdapter, -1, new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onClick(DialogInterface dialog, int position) {
                         Log.d("ListView", "setAdapter - onClick");
+                        //mSelect = position;
                     }
                 })
-                .setPositiveButton(R.string.fire, new DialogInterface.OnClickListener() {
+                .setPositiveButton(R.string.ble_connect, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        // FIRE ZE MISSILES!
-                        Log.d("dialog", "ok button");
+                        //接続したい
+                        //int position = mSelect;
+
+                        ListView lv = ((AlertDialog)dialog).getListView();
+                        int position = lv.getCheckedItemPosition();
+                        if (position != AdapterView.INVALID_POSITION) {
+                            Log.d("dialog", "ok button : " + mLeDeviceListAdapter.getDevice(position).getName());
+                        }
+                        else {
+                            Log.d("dialog", "ok button : not selected");
+                        }
+
                         scanner.stopScan(mLeScanCallback);
                     }
                 })
-                .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // User cancelled the dialog
                         Log.d("dialog", "cancel button");
@@ -150,6 +164,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
             ViewHolder viewHolder;
             // General ListView optimization code.
             if (view == null) {
+                //https://android.googlesource.com/platform/frameworks/base/+/android-5.0.0_r1/core/res/res/layout/simple_list_item_single_choice.xml
                 view = PeripheralSelectDialogFragment.this.getActivity().getLayoutInflater().inflate(android.R.layout.simple_list_item_single_choice, null);
                 viewHolder = new ViewHolder();
                 viewHolder.text = (TextView)view.findViewById(android.R.id.text1);

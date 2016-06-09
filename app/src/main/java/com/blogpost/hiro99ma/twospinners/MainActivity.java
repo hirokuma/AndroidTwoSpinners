@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,7 +25,7 @@ import com.blogpost.hiro99ma.Constants;
 import com.blogpost.hiro99ma.PeripheralSelectDialogFragment;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements PeripheralSelectDialogFragment.ClickListener {
     //BLE
     private static final int REQUEST_LOCATION = 0;
     private boolean permissions_granted=false;
@@ -139,14 +140,23 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 //start BLE Scan
                 if (permissions_granted) {
-                    PeripheralSelectDialogFragment dlg = new PeripheralSelectDialogFragment();
-                    dlg.setBluetoothAdapter(mBluetoothAdapter);
-                    dlg.show(getFragmentManager(), "fire");
+                    PeripheralSelectDialogFragment dlg = PeripheralSelectDialogFragment.newInstance();
+                    dlg.show(getFragmentManager(), "scan");
                 }
             }
         });
     }
 
+
+    @Override
+    public void onClickPositive(BluetoothDevice device) {
+        Log.d("Activity", "onClickPositive : " + device.getName());
+    }
+
+    @Override
+    public void onClickNegative() {
+        Log.d("Activity", "onClickNegative");
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //BLE

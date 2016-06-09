@@ -5,11 +5,13 @@ import android.app.Dialog;
 import android.app.DialogFragment;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -32,13 +34,17 @@ import java.util.List;
  * Created on 2016/06/03.
  */
 public class PeripheralSelectDialogFragment extends DialogFragment {
-    private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothLeScanner scanner = null;
     private ListAdapter mLeDeviceListAdapter = new ListAdapter();
     //private int mSelect = AdapterView.INVALID_POSITION;
 
-    public void setBluetoothAdapter(BluetoothAdapter bluetoothAdapter) {
-        mBluetoothAdapter = bluetoothAdapter;
+    public interface ClickListener {
+        void onClickPositive(BluetoothDevice device);
+        void onClickNegative();
+    }
+
+    public static PeripheralSelectDialogFragment newInstance() {
+        return new PeripheralSelectDialogFragment();
     }
 
     //Scanした機器一覧のリスト
@@ -69,6 +75,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
                         int position = lv.getCheckedItemPosition();
                         if (position != AdapterView.INVALID_POSITION) {
                             Log.d("dialog", "ok button : " + mLeDeviceListAdapter.getDevice(position).getName());
+                            ((ClickListener)getActivity()).onClickPositive(mLeDeviceListAdapter.getDevice(position));
                         }
                         else {
                             Log.d("dialog", "ok button : not selected");
@@ -82,6 +89,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
                         // User cancelled the dialog
                         Log.d("dialog", "cancel button");
                         scanner.stopScan(mLeScanCallback);
+                        ((ClickListener)getActivity()).onClickNegative();
                     }
                 });
 
@@ -98,6 +106,8 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
 
     //Scan動作の本体
     private void scanLeDevices() {
+        BluetoothManager bluetoothManager = (BluetoothManager)getActivity().getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter mBluetoothAdapter = bluetoothManager.getAdapter();
         scanner = mBluetoothAdapter.getBluetoothLeScanner();
         List<ScanFilter> filters = new ArrayList<>();
         ScanFilterFactory filter_factory = ScanFilterFactory.getInstance();
@@ -109,9 +119,15 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
     //Scan結果のコールバック関数
     private ScanCallback mLeScanCallback = new ScanCallback() {
         public void onScanResult(int callbackType, final ScanResult result) {
-            Log.d("scancb", result.getDevice().getName());
-            mLeDeviceListAdapter.addDevice(result.getDevice());
-            mLeDeviceListAdapter.notifyDataSetChanged();
+            BluetoothDevice device = result.getDevice();
+            if (device != null) {
+                Log.d("scancb", device.getName());
+                mLeDeviceListAdapter.addDevice(result.getDevice());
+                mLeDeviceListAdapter.notifyDataSetChanged();
+            }
+            else {
+                Log.d("scancb", "no device");
+            }
         }
     };
 

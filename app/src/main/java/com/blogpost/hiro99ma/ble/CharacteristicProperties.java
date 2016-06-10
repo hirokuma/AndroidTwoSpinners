@@ -1,4 +1,4 @@
-package com.blogpost.hiro99ma;
+package com.blogpost.hiro99ma.ble;
 
 /**
  * Created by mwoolley on 16/02/2015.

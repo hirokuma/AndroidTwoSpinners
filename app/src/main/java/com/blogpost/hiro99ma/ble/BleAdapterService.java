@@ -1,4 +1,4 @@
-package com.blogpost.hiro99ma;
+package com.blogpost.hiro99ma.ble;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;

@@ -276,6 +276,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
     private Handler mMessageHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
+            final String TAG = "service handler";
 
             Bundle bundle;
             String service_uuid="";
@@ -286,25 +287,27 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
             switch (msg.what) {
                 case BleAdapterService.GATT_CONNECTED:
+                    Log.d(TAG, "GATT_CONNECTED");
 //                    ((Button) PeripheralControlActivity.this.findViewById(R.id.button_connect)).setEnabled(false);
 //                    // we're connected
 //                    enableGattOpButtons();
 //                    enableGattOpEditTexts();
                     break;
                 case BleAdapterService.GATT_DISCONNECT:
+                    Log.d(TAG, "GATT_DISCONNECT");
 //                    ((Button) PeripheralControlActivity.this.findViewById(R.id.button_connect)).setEnabled(true);
 //                    PeripheralControlActivity.this.stopTimer();
 //                    disableGattOpButtons();
                     break;
                 case BleAdapterService.GATT_SERVICES_DISCOVERED:
-                    Log.d(Constants.TAG, "Services discovered");
+                    Log.d(TAG, "GATT_SERVICES_DISCOVERED");
 
                     // start off the rssi reading timer
 //                    PeripheralControlActivity.this.startReadRssiTimer();
 
                     break;
                 case BleAdapterService.GATT_CHARACTERISTIC_READ:
-//                    Log.d(Constants.TAG, "Handler received characteristic read result");
+                    Log.d(TAG, "GATT_CHARACTERISTIC_READ");
 //                    bundle = msg.getData();
 //                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
 //                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
@@ -319,7 +322,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 //                    enableGattOpButtons();
                     break;
                 case BleAdapterService.GATT_CHARACTERISTIC_WRITTEN:
-//                    Log.d(Constants.TAG, "Handler received characteristic written result");
+                    Log.d(TAG, "GATT_CHARACTERISTIC_WRITTEN");
 //                    bundle = msg.getData();
 //                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
 //                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
@@ -327,7 +330,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 //                    enableGattOpButtons();
                     break;
                 case BleAdapterService.GATT_DESCRIPTOR_WRITTEN:
-//                    Log.d(Constants.TAG, "Handler received descriptor written result");
+                    Log.d(TAG, "GATT_DESCRIPTOR_WRITTEN");
 //                    bundle = msg.getData();
 //                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
 //                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
@@ -336,7 +339,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 //                    enableGattOpButtons();
                     break;
                 case BleAdapterService.NOTIFICATION_RECEIVED:
-//                    Log.d(Constants.TAG, "Handler received notification");
+                    Log.d(TAG, "NOTIFICATION_RECEIVED");
 //                    bundle = msg.getData();
 //                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
 //                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
@@ -360,6 +363,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 //                    showMsg(text);
                     break;
                 case BleAdapterService.ERROR:
+                    Log.d(Constants.TAG, "ERROR");
                     bundle = msg.getData();
                     String error = bundle.getString(BleAdapterService.PARCEL_ERROR);
 //                    showMsg(error);

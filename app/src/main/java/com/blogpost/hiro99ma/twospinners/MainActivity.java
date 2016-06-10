@@ -6,12 +6,17 @@ import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -20,16 +25,32 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 
-import com.blogpost.hiro99ma.Constants;
-import com.blogpost.hiro99ma.PeripheralSelectDialogFragment;
+import com.blogpost.hiro99ma.ble.BleAdapterService;
+import com.blogpost.hiro99ma.ble.Constants;
+import com.blogpost.hiro99ma.ble.PeripheralSelectDialogFragment;
+import com.blogpost.hiro99ma.ble.Utility;
 
 
-public class MainActivity extends Activity implements PeripheralSelectDialogFragment.ClickListener {
+public class MainActivity extends Activity implements PeripheralSelectDialogFragment.BleScanResultListener {
     //BLE
     private static final int REQUEST_LOCATION = 0;
     private boolean permissions_granted=false;
     private BluetoothAdapter mBluetoothAdapter = null;
+    private BleAdapterService mBluetoothLeService;
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mBluetoothLeService = ((BleAdapterService.LocalBinder)service).getService();
+            mBluetoothLeService.setActivityHandler(mMessageHandler);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBluetoothLeService = null;
+        }
+    };
     //BLE
 
 
@@ -52,7 +73,9 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //BLE
         onCreateBle();
+        //BLE
 
         mExecCommands = new Command[mTestForm.length + 1][];
         mExecCommands[0] = new Command[mTestForm.length];
@@ -133,6 +156,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             }
         });
 
+        //BLE
         //button : execute Scan
         Button buttonScan = (Button)findViewById(R.id.button_scan);
         buttonScan.setOnClickListener(new View.OnClickListener() {
@@ -145,18 +169,24 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
                 }
             }
         });
+        //BLE
     }
 
-
+    //BLE
     @Override
-    public void onClickPositive(BluetoothDevice device) {
-        Log.d("Activity", "onClickPositive : " + device.getName());
-    }
+    public void onScanResult(BluetoothDevice device) {
+        Log.d("Activity", "onScanResult : " + device.getName());
 
-    @Override
-    public void onClickNegative() {
-        Log.d("Activity", "onClickNegative");
+        if (mBluetoothLeService != null) {
+            if (mBluetoothLeService.connect(device.getAddress())) {
+                Log.d("Activity", "onScanResult : connect !");
+            }
+            else {
+                Log.d("Activity", "onScanResult : fail connect");
+            }
+        }
     }
+    //BLE
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //BLE
@@ -188,6 +218,10 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             // the ACCESS_COARSE_LOCATION permission did not exist before M so....
             permissions_granted = true;
         }
+
+        //サービスにバインド
+        Intent gattServiceIntent = new Intent(this, BleAdapterService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
 
@@ -236,4 +270,101 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
     //BLE
     /////////////////////////////////////////////////////////////////////////////////////////
+
+
+    // Service message handler
+    private Handler mMessageHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+
+            Bundle bundle;
+            String service_uuid="";
+            String characteristic_uuid="";
+            String descriptor_uuid="";
+            byte[] b=null;
+            TextView value_text=null;
+
+            switch (msg.what) {
+                case BleAdapterService.GATT_CONNECTED:
+//                    ((Button) PeripheralControlActivity.this.findViewById(R.id.button_connect)).setEnabled(false);
+//                    // we're connected
+//                    enableGattOpButtons();
+//                    enableGattOpEditTexts();
+                    break;
+                case BleAdapterService.GATT_DISCONNECT:
+//                    ((Button) PeripheralControlActivity.this.findViewById(R.id.button_connect)).setEnabled(true);
+//                    PeripheralControlActivity.this.stopTimer();
+//                    disableGattOpButtons();
+                    break;
+                case BleAdapterService.GATT_SERVICES_DISCOVERED:
+                    Log.d(Constants.TAG, "Services discovered");
+
+                    // start off the rssi reading timer
+//                    PeripheralControlActivity.this.startReadRssiTimer();
+
+                    break;
+                case BleAdapterService.GATT_CHARACTERISTIC_READ:
+//                    Log.d(Constants.TAG, "Handler received characteristic read result");
+//                    bundle = msg.getData();
+//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+//                    Log.d(Constants.TAG, "Handler processing characteristic " + characteristic_uuid + " of " + service_uuid);
+//                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+//                    Log.d(Constants.TAG, "Value=" + Utility.byteArrayAsHexString(b));
+//                    value_text = (TextView) findViewByUUIDs(VIEW_TYPE_TEXT_VIEW, service_uuid, characteristic_uuid);
+//                    if (value_text != null) {
+//                        Log.d(Constants.TAG, "Handler found TextView for characteristic value");
+//                        value_text.setText(Utility.byteArrayAsHexString(b));
+//                    }
+//                    enableGattOpButtons();
+                    break;
+                case BleAdapterService.GATT_CHARACTERISTIC_WRITTEN:
+//                    Log.d(Constants.TAG, "Handler received characteristic written result");
+//                    bundle = msg.getData();
+//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+//                    Log.d(Constants.TAG, "characteristic " + characteristic_uuid + " of " + service_uuid+" written OK");
+//                    enableGattOpButtons();
+                    break;
+                case BleAdapterService.GATT_DESCRIPTOR_WRITTEN:
+//                    Log.d(Constants.TAG, "Handler received descriptor written result");
+//                    bundle = msg.getData();
+//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+//                    descriptor_uuid = bundle.getString(BleAdapterService.PARCEL_DESCRIPTOR_UUID);
+//                    Log.d(Constants.TAG, "descriptor " + descriptor_uuid + " of " + "characteristic " + characteristic_uuid + " of " + service_uuid+" written OK");
+//                    enableGattOpButtons();
+                    break;
+                case BleAdapterService.NOTIFICATION_RECEIVED:
+//                    Log.d(Constants.TAG, "Handler received notification");
+//                    bundle = msg.getData();
+//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+//                    Log.d(Constants.TAG, "Handler processing characteristic " + characteristic_uuid + " of " + service_uuid);
+//                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+//                    Log.d(Constants.TAG, "Value=" + Utility.byteArrayAsHexString(b));
+//                    value_text = (TextView) findViewByUUIDs(VIEW_TYPE_TEXT_VIEW, service_uuid, characteristic_uuid);
+//                    if (value_text != null) {
+//                        Log.d(Constants.TAG, "Handler found TextView for characteristic value");
+//                        value_text.setText(Utility.byteArrayAsHexString(b));
+//                    }
+                    break;
+                case BleAdapterService.GATT_REMOTE_RSSI:
+//                    bundle = msg.getData();
+//                    int rssi = bundle.getInt(BleAdapterService.PARCEL_RSSI);
+//                    PeripheralControlActivity.this.updateRssi(rssi);
+                    break;
+                case BleAdapterService.MESSAGE:
+                    bundle = msg.getData();
+                    String text = bundle.getString(BleAdapterService.PARCEL_TEXT);
+//                    showMsg(text);
+                    break;
+                case BleAdapterService.ERROR:
+                    bundle = msg.getData();
+                    String error = bundle.getString(BleAdapterService.PARCEL_ERROR);
+//                    showMsg(error);
+//                    enableGattOpButtons();
+            }
+        }
+    };
 }

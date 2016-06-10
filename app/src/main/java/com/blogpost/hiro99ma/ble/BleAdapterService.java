@@ -173,7 +173,7 @@ public class BleAdapterService extends Service {
     private final IBinder mBinder = new LocalBinder();
 
     public class LocalBinder extends Binder {
-        BleAdapterService getService() {
+        public BleAdapterService getService() {
             return BleAdapterService.this;
         }
     }

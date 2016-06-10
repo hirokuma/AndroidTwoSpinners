@@ -36,9 +36,8 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
     private ListAdapter mLeDeviceListAdapter = new ListAdapter();
     //private int mSelect = AdapterView.INVALID_POSITION;
 
-    public interface ClickListener {
-        void onClickPositive(BluetoothDevice device);
-        void onClickNegative();
+    public interface BleScanResultListener {
+        void onScanResult(BluetoothDevice device);
     }
 
     public static PeripheralSelectDialogFragment newInstance() {
@@ -73,7 +72,7 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
                         int position = lv.getCheckedItemPosition();
                         if (position != AdapterView.INVALID_POSITION) {
                             Log.d("dialog", "ok button : " + mLeDeviceListAdapter.getDevice(position).getName());
-                            ((ClickListener)getActivity()).onClickPositive(mLeDeviceListAdapter.getDevice(position));
+                            ((BleScanResultListener)getActivity()).onScanResult(mLeDeviceListAdapter.getDevice(position));
                         }
                         else {
                             Log.d("dialog", "ok button : not selected");
@@ -87,7 +86,6 @@ public class PeripheralSelectDialogFragment extends DialogFragment {
                         // User cancelled the dialog
                         Log.d("dialog", "cancel button");
                         scanner.stopScan(mLeScanCallback);
-                        ((ClickListener)getActivity()).onClickNegative();
                     }
                 });
 

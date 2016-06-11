@@ -28,7 +28,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.blogpost.hiro99ma.ble.BleAdapterService;
-import com.blogpost.hiro99ma.ble.Constants;
 import com.blogpost.hiro99ma.ble.PeripheralSelectDialogFragment;
 import com.blogpost.hiro99ma.ble.Utility;
 
@@ -51,6 +50,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             mBluetoothLeService = null;
         }
     };
+    public BleAdapterService getBleAdapterService() { return mBluetoothLeService; }
     //BLE
 
 
@@ -60,6 +60,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
     private int mMainCategoryIdx = 0;
     private int mSubCategoryIdx = 0;
     private Command[][] mExecCommands;
+    private static final String TAG = "MainActivity";
 
     //ここにテストクラスのインスタンスを追加する
     private ITestForm[] mTestForm = new ITestForm[] {
@@ -201,7 +202,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             startActivity(enableBtIntent);
             return;
         }
-        Log.d(Constants.TAG, "Bluetooth is switched on");
+        Log.d(TAG, "Bluetooth is switched on");
 
         //have Locate Permission ?
         //https://developer.android.com/reference/android/os/Build.VERSION_CODES.html?hl=ja#M
@@ -211,7 +212,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
                 permissions_granted = false;
                 requestLocationPermission();
             } else {
-                Log.i(Constants.TAG, "Location permission has already been granted. Starting scanning.");
+                Log.i(TAG, "Location permission has already been granted. Starting scanning.");
                 permissions_granted = true;
             }
         } else {
@@ -227,11 +228,11 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
     //位置情報の許可
     private void requestLocationPermission() {
-        Log.i(Constants.TAG, "Location permission has NOT yet been granted. Requesting permission.");
+        Log.i(TAG, "Location permission has NOT yet been granted. Requesting permission.");
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)){
-            Log.i(Constants.TAG, "■shouldShowRequestPermissionRationale : true");
+            Log.i(TAG, "■shouldShowRequestPermissionRationale : true");
             //2回目以降は説明ダイアログを表示してから位置情報許可を求めている
-            Log.i(Constants.TAG, "Displaying location permission rationale to provide additional context.");
+            Log.i(TAG, "Displaying location permission rationale to provide additional context.");
             final AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("許可がいるのです");
             builder.setMessage("アプリの位置情報を許可しないと、BLE機器のスキャンができません");
@@ -239,7 +240,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 public void onDismiss(DialogInterface dialog) {
                     //位置情報許可を求める
-                    Log.d(Constants.TAG, "Requesting permissions after explanation");
+                    Log.d(TAG, "Requesting permissions after explanation");
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_LOCATION);
                 }
             });
@@ -254,14 +255,14 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_LOCATION) {
-            Log.i(Constants.TAG, "Received response for location permission request.");
+            Log.i(TAG, "Received response for location permission request.");
             // Check if the only required permission has been granted
             if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Location permission has been granted
-                Log.i(Constants.TAG, "Location permission has now been granted. Scanning.....");
+                Log.i(TAG, "Location permission has now been granted. Scanning.....");
                 permissions_granted = true;
             } else {
-                Log.i(Constants.TAG, "Location permission was NOT granted.");
+                Log.i(TAG, "Location permission was NOT granted.");
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -273,47 +274,37 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
 
     // Service message handler
-    private Handler mMessageHandler = new Handler() {
+    private static Handler mMessageHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             final String TAG = "service handler";
 
             Bundle bundle;
-            String service_uuid="";
-            String characteristic_uuid="";
-            String descriptor_uuid="";
-            byte[] b=null;
-            TextView value_text=null;
+            String service_uuid = "";
+            String characteristic_uuid = "";
+            String descriptor_uuid = "";
+            byte[] b = null;
+            TextView value_text = null;
 
             switch (msg.what) {
                 case BleAdapterService.GATT_CONNECTED:
                     Log.d(TAG, "GATT_CONNECTED");
-//                    ((Button) PeripheralControlActivity.this.findViewById(R.id.button_connect)).setEnabled(false);
-//                    // we're connected
-//                    enableGattOpButtons();
-//                    enableGattOpEditTexts();
+                    //UIを有効にするなどの処理(接続ボタンがあれば無効にする)
                     break;
                 case BleAdapterService.GATT_DISCONNECT:
                     Log.d(TAG, "GATT_DISCONNECT");
-//                    ((Button) PeripheralControlActivity.this.findViewById(R.id.button_connect)).setEnabled(true);
-//                    PeripheralControlActivity.this.stopTimer();
-//                    disableGattOpButtons();
+                    //UIを無効にするなどの処理(接続ボタンがあれば有効にする)
                     break;
                 case BleAdapterService.GATT_SERVICES_DISCOVERED:
                     Log.d(TAG, "GATT_SERVICES_DISCOVERED");
-
-                    // start off the rssi reading timer
-//                    PeripheralControlActivity.this.startReadRssiTimer();
-
                     break;
                 case BleAdapterService.GATT_CHARACTERISTIC_READ:
-                    Log.d(TAG, "GATT_CHARACTERISTIC_READ");
-//                    bundle = msg.getData();
-//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-//                    Log.d(Constants.TAG, "Handler processing characteristic " + characteristic_uuid + " of " + service_uuid);
-//                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-//                    Log.d(Constants.TAG, "Value=" + Utility.byteArrayAsHexString(b));
+                    bundle = msg.getData();
+                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+                    Log.d(TAG, "GATT_CHARACTERISTIC_READ: " + characteristic_uuid + ":" + service_uuid);
+                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+                    Log.d(TAG, "  Value=" + Utility.byteArrayAsHexString(b));
 //                    value_text = (TextView) findViewByUUIDs(VIEW_TYPE_TEXT_VIEW, service_uuid, characteristic_uuid);
 //                    if (value_text != null) {
 //                        Log.d(Constants.TAG, "Handler found TextView for characteristic value");
@@ -322,30 +313,29 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 //                    enableGattOpButtons();
                     break;
                 case BleAdapterService.GATT_CHARACTERISTIC_WRITTEN:
-                    Log.d(TAG, "GATT_CHARACTERISTIC_WRITTEN");
-//                    bundle = msg.getData();
-//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-//                    Log.d(Constants.TAG, "characteristic " + characteristic_uuid + " of " + service_uuid+" written OK");
+                    bundle = msg.getData();
+                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+                    Log.d(TAG, "GATT_CHARACTERISTIC_WRITTEN: " + characteristic_uuid + ":" + service_uuid);
+                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+                    Log.d(TAG, "  Value=" + Utility.byteArrayAsHexString(b));
 //                    enableGattOpButtons();
                     break;
                 case BleAdapterService.GATT_DESCRIPTOR_WRITTEN:
-                    Log.d(TAG, "GATT_DESCRIPTOR_WRITTEN");
-//                    bundle = msg.getData();
-//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-//                    descriptor_uuid = bundle.getString(BleAdapterService.PARCEL_DESCRIPTOR_UUID);
-//                    Log.d(Constants.TAG, "descriptor " + descriptor_uuid + " of " + "characteristic " + characteristic_uuid + " of " + service_uuid+" written OK");
+                    bundle = msg.getData();
+                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+                    descriptor_uuid = bundle.getString(BleAdapterService.PARCEL_DESCRIPTOR_UUID);
+                    Log.d(TAG, "GATT_DESCRIPTOR_WRITTEN: " + descriptor_uuid + "(" + characteristic_uuid + ":" + service_uuid + ")");
 //                    enableGattOpButtons();
                     break;
                 case BleAdapterService.NOTIFICATION_RECEIVED:
-                    Log.d(TAG, "NOTIFICATION_RECEIVED");
-//                    bundle = msg.getData();
-//                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-//                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-//                    Log.d(Constants.TAG, "Handler processing characteristic " + characteristic_uuid + " of " + service_uuid);
-//                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-//                    Log.d(Constants.TAG, "Value=" + Utility.byteArrayAsHexString(b));
+                    bundle = msg.getData();
+                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+                    Log.d(TAG, "NOTIFICATION_RECEIVED: " + characteristic_uuid + ":" + service_uuid);
+                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+                    Log.d(TAG, "  Value=" + Utility.byteArrayAsHexString(b));
 //                    value_text = (TextView) findViewByUUIDs(VIEW_TYPE_TEXT_VIEW, service_uuid, characteristic_uuid);
 //                    if (value_text != null) {
 //                        Log.d(Constants.TAG, "Handler found TextView for characteristic value");
@@ -360,12 +350,13 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
                 case BleAdapterService.MESSAGE:
                     bundle = msg.getData();
                     String text = bundle.getString(BleAdapterService.PARCEL_TEXT);
+                    Log.d(TAG, "MESSAGE: " + text);
 //                    showMsg(text);
                     break;
                 case BleAdapterService.ERROR:
-                    Log.d(Constants.TAG, "ERROR");
                     bundle = msg.getData();
                     String error = bundle.getString(BleAdapterService.PARCEL_ERROR);
+                    Log.d(TAG, "ERROR: " + error);
 //                    showMsg(error);
 //                    enableGattOpButtons();
             }

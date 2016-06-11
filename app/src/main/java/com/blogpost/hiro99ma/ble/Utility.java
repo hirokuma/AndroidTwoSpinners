@@ -1,9 +1,11 @@
 package com.blogpost.hiro99ma.ble;
+import android.util.Log;
 
 public class Utility {
 
     private static final String BLUETOOTH_SIG_UUID_BASE = "0000XXXX-0000-1000-8000-00805f9b34fb";
     private static final String HEX_CHARS="01234567890ABCDEF";
+    private static final String TAG = "BDS:Utility";
 
     public static String normaliseUUID(String uuid) {
         String normalised_128_bit_uuid = uuid;
@@ -12,7 +14,7 @@ public class Utility {
         }
         if (uuid.length() == 32) {
             normalised_128_bit_uuid = uuid.substring(0,8) + "-"
-                    + uuid.substring(8,12) + "-"
+                    + uuid.substring( 8,12) + "-"
                     + uuid.substring(12,16) + "-"
                     + uuid.substring(16,20) + "-"
                     + uuid.substring(20,32);
@@ -39,7 +41,7 @@ public class Utility {
     }
 
     public static byte[] getByteArrayFromHexString(String hex_string) {
-     String hex = hex_string.replace(" ","");
+     String hex = hex_string.replace(" ", "");
      hex = hex.toUpperCase();
 
         byte[] bytes = new byte[hex.length() / 2];
@@ -53,7 +55,7 @@ public class Utility {
                 bytes[j++] = (byte) b;
                 i = i + 2;
             } catch (NumberFormatException e) {
-                System.out.println("NFE handling " + h1 + h2 + " with i=" + i);
+                Log.w(TAG, "NFE handling " + h1 + h2 + " with i=" + i);
                 throw e;
             }
         }
@@ -65,14 +67,6 @@ public class Utility {
         if (bytes == null) {
             return "";
         }
-//        int l = bytes.length;
-//        StringBuffer hex = new StringBuffer();
-//        for (int i = 0; i < l; i++) {
-//            if ((bytes[i] >= 0) & (bytes[i] < 16)) {
-//                hex.append("0");
-//            }
-//            hex.append(Integer.toString(bytes[i] & 0xff, 16).toUpperCase());
-//        }
         StringBuilder hex = new StringBuilder();
         for (byte bt : bytes) {
             if ((bt >= 0) && (bt < 16)) {
@@ -84,27 +78,21 @@ public class Utility {
     }
 
     public static boolean isValidHex(String hex_string) {
-        System.out.println("isValidHex("+hex_string+")");
         String hex = hex_string.replace(" ","");
         hex = hex.toUpperCase();
         int len = hex.length();
         int remainder = len % 2;
         if (remainder != 0) {
-            System.out.println("isValidHex: not even number of chars");
+            Log.w(TAG, "isValidHex: not even number of chars");
             return false;
         }
-        for (int i=0;i<len;i++) {
-            if (!HEX_CHARS.contains(hex.substring(i,i+1))) {
+        for (int i = 0; i < len; i++) {
+            if (!HEX_CHARS.contains(hex.substring(i, i + 1))) {
+            	Log.w(TAG, "isValidHex: not HEX chars");
                 return false;
             }
         }
         return true;
-    }
-
-    public static void main(String args[]) {
-        System.out.println("UUID 1802 = " + Utility.normaliseUUID("1802"));
-        System.out.println("isValidHex: 01 02 03 04 05 06 A0 B1 C1 D1 E1 F1="+isValidHex("01 02 03 04 05 06 A0 B1 C1 D1 E1 F1"));
-        System.out.println("isValidHex: 01 02 0X 04 05 06 A0 B1 C1 D1 E1 F1="+isValidHex("01 02 0X 04 05 06 A0 B1 C1 D1 E1 F1"));
     }
 
 }

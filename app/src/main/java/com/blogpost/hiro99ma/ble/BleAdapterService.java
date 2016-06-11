@@ -24,7 +24,7 @@ import java.util.UUID;
 
 public class BleAdapterService extends Service {
 
-    private static final String TAG = "BDS Android App";
+    private static final String TAG = "BDS:BleAdapterService";
 
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothGatt mBluetoothGatt;
@@ -60,10 +60,13 @@ public class BleAdapterService extends Service {
     public static final String PARCEL_ERROR = "ERROR";
 
     // UUIDs
-    public static final String READ_WRITE_SERVICE_SERVICE_UUID = "B7B851C6D7B847B38F93773756B46F9A";
+    public static final String READ_WRITE_SERVICE_SERVICE_UUID = "B7B851C6-D7B8-47B3-8F93-773756B46F9A";
 
-    public static final String READ_CHARACTERISTIC_UUID = "B7B820DDD7B847B38F93773756B46F9A";
-    public static final String WRITE_CHARACTERISTIC_UUID = "B7B85DB0D7B847B38F93773756B46F9A";
+    public static final String READ_CHARACTERISTIC_UUID = "B7B80010-D7B8-47B3-8F93-773756B46F9A";
+    public static final String WRITE_CHARACTERISTIC_UUID = "B7B80011-D7B8-47B3-8F93-773756B46F9A";
+    public static final String WWR_CHARACTERISTIC_UUID = "B7B80012-D7B8-47B3-8F93-773756B46F9A";
+    public static final String NOTIFY_CHARACTERISTIC_UUID = "B7B80013-D7B8-47B3-8F93-773756B46F9A";
+    public static final String INDICATE_CHARACTERISTIC_UUID = "B7B80014-D7B8-47B3-8F93-773756B46F9A";
 
     public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
 
@@ -105,7 +108,8 @@ public class BleAdapterService extends Service {
                 msg.setData(bundle);
                 msg.sendToTarget();
             } else {
-                sendConsoleMessage("characteristic read err:"+status);
+                Log.w(TAG, "characteristic read err:" + status);
+                sendConsoleMessage("characteristic read err:" + status);
             }
         }
 
@@ -122,6 +126,7 @@ public class BleAdapterService extends Service {
                 msg.setData(bundle);
                 msg.sendToTarget();
             } else {
+                Log.w(TAG, "characteristic write err:" + status);
                 reportError("characteristic write err:" + status);
             }
         }
@@ -151,6 +156,7 @@ public class BleAdapterService extends Service {
                 msg.setData(bundle);
                 msg.sendToTarget();
             } else {
+                Log.w(TAG, "Descriptor write err:" + status);
                 reportError("Descriptor write err:" + status);
             }
         }
@@ -164,7 +170,8 @@ public class BleAdapterService extends Service {
                 msg.setData(bundle);
                 msg.sendToTarget();
             } else {
-                reportError("RSSI read err:"+status);
+                Log.w(TAG, "RSSI read err:" + status);
+                reportError("RSSI read err:" + status);
             }
         }
     };
@@ -211,12 +218,14 @@ public class BleAdapterService extends Service {
     // connect to the device
     public boolean connect(final String address) {
         if (mBluetoothAdapter == null || address == null) {
+            Log.w(TAG, "connect: mBluetoothAdapter=null");
             sendConsoleMessage("connect: mBluetoothAdapter=null");
             return false;
         }
 
         mDevice = mBluetoothAdapter.getRemoteDevice(address);
         if (mDevice == null) {
+            Log.w(TAG, "connect: device=null");
             sendConsoleMessage("connect: device=null");
             return false;
         }
@@ -231,6 +240,7 @@ public class BleAdapterService extends Service {
     public void disconnect() {
         sendConsoleMessage("disconnect");
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "disconnect: mBluetoothAdapter|mBluetoothGatt null");
             sendConsoleMessage("disconnect: mBluetoothAdapter|mBluetoothGatt null");
             return;
         }
@@ -252,24 +262,27 @@ public class BleAdapterService extends Service {
 
     // writes a value to a characteristic with response required
     public boolean writeCharacteristic(String serviceUuid,String characteristicUuid, byte[] value) {
-        return writeCharacteristic(serviceUuid,characteristicUuid, value,true);
+        return writeCharacteristic(serviceUuid,characteristicUuid, value, true);
     }
 
     // writes a value to a characteristic with/without response
     public boolean writeCharacteristic(String serviceUuid,String characteristicUuid, byte[] value, boolean require_response) {
         Log.d(TAG, "writeCharacteristic serviceUuid="+serviceUuid+" characteristicUuid="+characteristicUuid+" require_response="+require_response);
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "writeCharacteristic: mBluetoothAdapter|mBluetoothGatt null");
             sendConsoleMessage("writeCharacteristic: mBluetoothAdapter|mBluetoothGatt null");
             return false;
         }
 
         BluetoothGattService gattService = mBluetoothGatt.getService(java.util.UUID.fromString(serviceUuid));
         if (gattService == null) {
+            Log.w(TAG, "writeCharacteristic: gattService null");
             sendConsoleMessage("writeCharacteristic: gattService null");
             return false;
         }
         BluetoothGattCharacteristic gattChar = gattService.getCharacteristic(java.util.UUID.fromString(characteristicUuid));
         if (gattChar == null) {
+            Log.w(TAG, "writeCharacteristic: gattChar null");
             sendConsoleMessage("writeCharacteristic: gattChar null");
             return false;
         }
@@ -287,17 +300,20 @@ public class BleAdapterService extends Service {
     // read value from service
     public boolean readCharacteristic(String serviceUuid, String characteristicUuid) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "readCharacteristic: mBluetoothAdapter|mBluetoothGatt null");
             sendConsoleMessage("readCharacteristic: mBluetoothAdapter|mBluetoothGatt null");
             return false;
         }
 
         BluetoothGattService gattService = mBluetoothGatt.getService(java.util.UUID.fromString(serviceUuid));
         if (gattService == null) {
+            Log.w(TAG, "readCharacteristic: gattService null");
             sendConsoleMessage("readCharacteristic: gattService null");
             return false;
         }
         BluetoothGattCharacteristic gattChar = gattService.getCharacteristic(java.util.UUID.fromString(characteristicUuid));
         if (gattChar == null) {
+            Log.w(TAG, "readCharacteristic: gattChar null");
             sendConsoleMessage("readCharacteristic: gattChar null");
             return false;
         }
@@ -306,12 +322,14 @@ public class BleAdapterService extends Service {
 
     public boolean setNotificationsState(String serviceUuid, String characteristicUuid, boolean enabled) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "setNotificationsState: mBluetoothAdapter|mBluetoothGatt null");
             sendConsoleMessage("setNotificationsState: mBluetoothAdapter|mBluetoothGatt null");
             return false;
         }
 
         BluetoothGattService gattService = mBluetoothGatt.getService(java.util.UUID.fromString(serviceUuid));
         if (gattService == null) {
+            Log.w(TAG, "setNotificationsState: gattService null");
             sendConsoleMessage("setNotificationsState: gattService null");
             return false;
         }
@@ -323,31 +341,34 @@ public class BleAdapterService extends Service {
         mBluetoothGatt.setCharacteristicNotification(gattChar, enabled);
         // Enable remote notifications
         mDescriptor = gattChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
-        Log.d(Constants.TAG, "XXXX Descriptor:" + mDescriptor.getUuid());
+        Log.d(TAG, "Descriptor:" + mDescriptor.getUuid());
         mDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         return mBluetoothGatt.writeDescriptor(mDescriptor);
     }
 
     public boolean setIndicationsState(String serviceUuid, String characteristicUuid, boolean enabled) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "setIndicationsState: mBluetoothAdapter|mBluetoothGatt null");
             sendConsoleMessage("setIndicationsState: mBluetoothAdapter|mBluetoothGatt null");
             return false;
         }
 
         BluetoothGattService gattService = mBluetoothGatt.getService(java.util.UUID.fromString(serviceUuid));
         if (gattService == null) {
+            Log.w(TAG, "setIndicationsState: gattService null");
             sendConsoleMessage("setIndicationsState: gattService null");
             return false;
         }
         BluetoothGattCharacteristic gattChar = gattService.getCharacteristic(java.util.UUID.fromString(characteristicUuid));
         if (gattChar == null) {
+            Log.w(TAG, "setIndicationsState: gattChar null");
             sendConsoleMessage("setIndicationsState: gattChar null");
             return false;
         }
         mBluetoothGatt.setCharacteristicNotification(gattChar, enabled);
         // Enable remote notifications
         mDescriptor = gattChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
-        Log.d(Constants.TAG, "XXXX Descriptor:" + mDescriptor.getUuid());
+        Log.d(TAG, "Descriptor:" + mDescriptor.getUuid());
         mDescriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
         return mBluetoothGatt.writeDescriptor(mDescriptor);
     }
@@ -360,7 +381,7 @@ public class BleAdapterService extends Service {
     }
 
     private void reportError(String text) {
-        Log.d(Constants.TAG, "ERROR: "+text);
+        Log.d(TAG, "ERROR: "+text);
         Message msg = Message.obtain(mActivityHandler, ERROR);
         Bundle data = new Bundle();
         data.putString(PARCEL_ERROR, text);
@@ -369,12 +390,11 @@ public class BleAdapterService extends Service {
     }
 
     private void sendConsoleMessage(String text) {
-        Log.d(Constants.TAG, "XXXX "+text);
+        Log.d(TAG, text);
         Message msg = Message.obtain(mActivityHandler, MESSAGE);
         Bundle data = new Bundle();
         data.putString(PARCEL_TEXT, text);
         msg.setData(data);
         msg.sendToTarget();
     }
-
 }

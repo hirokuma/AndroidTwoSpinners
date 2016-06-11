@@ -20,15 +20,7 @@ public class ScanFilterFactory {
     }
 
     public ScanFilter getScanFilter() {
-        //検索結果のフィルタ
-        //https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder.html
-
-        //none
         return new ScanFilter.Builder().build();
-
-        //Device Name
-        //String device_name = "検索するDeviceName";
-        //return new ScanFilter.Builder().setDeviceName(device_name).build();
 
         //Device Address
         //return new ScanFilter.Builder().setDeviceAddress("").build();

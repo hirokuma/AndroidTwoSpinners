@@ -12,11 +12,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -26,6 +28,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.blogpost.hiro99ma.ble.BleAdapterService;
 import com.blogpost.hiro99ma.ble.PeripheralSelectDialogFragment;
@@ -35,13 +38,15 @@ import com.blogpost.hiro99ma.ble.Utility;
 public class MainActivity extends Activity implements PeripheralSelectDialogFragment.BleScanResultListener {
     //BLE
     private static final int REQUEST_LOCATION = 0;
-    private boolean permissions_granted=false;
+    private static final int REQUEST_LOCATION_SERVICE = 1;
+    private boolean permissions_granted = false;
     private BluetoothAdapter mBluetoothAdapter = null;
     private BleAdapterService mBluetoothLeService;
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            mBluetoothLeService = ((BleAdapterService.LocalBinder)service).getService();
+            //BLE接続の通知を受けるので、その前に設定する
+            mBluetoothLeService = ((BleAdapterService.LocalBinder) service).getService();
             mBluetoothLeService.setActivityHandler(mMessageHandler);
         }
 
@@ -50,11 +55,16 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             mBluetoothLeService = null;
         }
     };
-    public BleAdapterService getBleAdapterService() { return mBluetoothLeService; }
+
+    public BleAdapterService getBleAdapterService() {
+        return mBluetoothLeService;
+    }
     //BLE
 
 
     private Spinner mSpinSub;
+    Button mButtonExec;
+    Button mButtonScan;
     private ArrayAdapter<String> mAdapterSub;
 
     private int mMainCategoryIdx = 0;
@@ -63,7 +73,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
     private static final String TAG = "MainActivity";
 
     //ここにテストクラスのインスタンスを追加する
-    private ITestForm[] mTestForm = new ITestForm[] {
+    private ITestForm[] mTestForm = new ITestForm[]{
             Test1.getInstance(),
             Test2.getInstance(),
             Test3.getInstance(),
@@ -75,7 +85,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         setContentView(R.layout.activity_main);
 
         //BLE
-        onCreateBle();
+        boolean ble_enabled = onCreateBle(true);
         //BLE
 
         mExecCommands = new Command[mTestForm.length + 1][];
@@ -99,8 +109,9 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         Spinner spinMain = (Spinner) this.findViewById(R.id.spin_main_category);
         mSpinSub = (Spinner) this.findViewById(R.id.spin_sub_category);
         mAdapterSub = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item);
-        Button buttonExec = (Button)findViewById(R.id.button_exec);
-        if ((spinMain == null) || (mSpinSub == null) || (buttonExec == null)) {
+        mButtonExec = (Button) findViewById(R.id.button_exec);
+        mButtonScan = (Button) findViewById(R.id.button_scan);
+        if ((spinMain == null) || (mSpinSub == null) || (mButtonExec == null)) {
             mSpinSub = null;
             mAdapterSub = null;
             return;
@@ -118,7 +129,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         spinMain.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                mMainCategoryIdx = (int)id;
+                mMainCategoryIdx = (int) id;
                 mSubCategoryIdx = 0;
 
                 mAdapterSub.clear();
@@ -140,7 +151,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         mSpinSub.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                mSubCategoryIdx = (int)id;
+                mSubCategoryIdx = (int) id;
             }
 
             @Override
@@ -149,18 +160,19 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         });
 
         //button : execute TEST
-        buttonExec.setOnClickListener(new View.OnClickListener() {
+        mButtonExec.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d("EXEC " + String.valueOf(mMainCategoryIdx + 1) + "-" + String.valueOf(mSubCategoryIdx + 1), "[" + mSpinSub.getSelectedItem().toString() + "]");
-                mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this);
+                //mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this);
+                ExecTestCommand cmd = new ExecTestCommand();
+                cmd.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[])null);
             }
         });
 
         //BLE
         //button : execute Scan
-        Button buttonScan = (Button)findViewById(R.id.button_scan);
-        buttonScan.setOnClickListener(new View.OnClickListener() {
+        mButtonScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //start BLE Scan
@@ -171,9 +183,57 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             }
         });
         //BLE
+
+        if (!ble_enabled) {
+            mButtonScan.setEnabled(false);
+            mButtonExec.setEnabled(false);
+        }
     }
 
-    //BLE
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(mServiceConnection);  //これをしないと終了時にmServiceConnectionがリークする
+        mBluetoothLeService = null;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        boolean ble_enabled = onCreateBle(false);
+        mButtonScan.setEnabled(ble_enabled);
+        mButtonExec.setEnabled(ble_enabled);
+    }
+
+    public class ExecTestCommand extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected void onPreExecute() {
+            Log.d("ExecTestCommand", "onPreExecute");
+            Button buttonExec = (Button) findViewById(R.id.button_exec);
+            buttonExec.setEnabled(false);
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this);
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... progress) {
+
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            Log.d("ExecTestCommand", "onPostExecute");
+            Button buttonExec = (Button) findViewById(R.id.button_exec);
+            buttonExec.setEnabled(true);
+        }
+    }
+
+    //BLEスキャン結果で「接続」をタップした
     @Override
     public void onScanResult(BluetoothDevice device) {
         Log.d("Activity", "onScanResult : " + device.getName());
@@ -181,8 +241,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         if (mBluetoothLeService != null) {
             if (mBluetoothLeService.connect(device.getAddress())) {
                 Log.d("Activity", "onScanResult : connect !");
-            }
-            else {
+            } else {
                 Log.d("Activity", "onScanResult : fail connect");
             }
         }
@@ -191,7 +250,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //BLE
-    private void onCreateBle() {
+    private boolean onCreateBle(boolean gotoSetting) {
         // Initializes Bluetooth adapter.
         final BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -199,18 +258,36 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         // BLE enable ?
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivity(enableBtIntent);
-            return;
+            Toast.makeText(this, R.string.ble_disable_bluetooth, Toast.LENGTH_SHORT).show();
+            if (gotoSetting) {
+                startActivity(enableBtIntent);
+            }
+            return false;
         }
         Log.d(TAG, "Bluetooth is switched on");
 
-        //have Locate Permission ?
+        //位置情報サービス
+        final boolean locationEnabled = Settings.Secure.getInt(getContentResolver(), Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF) != Settings.Secure.LOCATION_MODE_OFF;
+        if (!locationEnabled) {
+            Toast.makeText(this, R.string.ble_disable_location_service, Toast.LENGTH_SHORT).show();
+            if (gotoSetting) {
+                Intent enableLocationIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivityForResult(enableLocationIntent, REQUEST_LOCATION_SERVICE);
+            }
+            return false;
+        }
+
+        //アプリの位置情報許可
         //https://developer.android.com/reference/android/os/Build.VERSION_CODES.html?hl=ja#M
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
                 permissions_granted = false;
-                requestLocationPermission();
+                Toast.makeText(this, R.string.ble_disable_location_app, Toast.LENGTH_SHORT).show();
+                if (gotoSetting) {
+                    requestLocationPermission();
+                }
+                return false;
             } else {
                 Log.i(TAG, "Location permission has already been granted. Starting scanning.");
                 permissions_granted = true;
@@ -223,13 +300,15 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         //サービスにバインド
         Intent gattServiceIntent = new Intent(this, BleAdapterService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+        return true;
     }
 
 
     //位置情報の許可
     private void requestLocationPermission() {
         Log.i(TAG, "Location permission has NOT yet been granted. Requesting permission.");
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)){
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
             Log.i(TAG, "■shouldShowRequestPermissionRationale : true");
             //2回目以降は説明ダイアログを表示してから位置情報許可を求めている
             Log.i(TAG, "Displaying location permission rationale to provide additional context.");
@@ -266,6 +345,13 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_LOCATION_SERVICE) {
+            Log.d("onActivityResult", "resultCode=" + resultCode);
         }
     }
 

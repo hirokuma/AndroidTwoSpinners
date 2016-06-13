@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ble_connect">接続</string>
-
+    <string name="ble_disable_bluetooth">Bluetoothが無効になっています</string>
+    <string name="ble_disable_location_service">位置情報サービスが無効になっています</string>
+    <string name="ble_disable_location_app">アプリの位置情報が不許可になっています</string>
     <string name="ble_unknown_device">unknown device</string>
 </resources>

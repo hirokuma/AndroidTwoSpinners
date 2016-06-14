@@ -31,9 +31,8 @@ public class Test1 implements ITestForm {
                 public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub1-1");
 
-                    byte[] bytes = new byte[3];
                     byte[] wrt = new byte[] { 0x12, 0x34, 0x56 };
-                    bytes = service.writeCharacteristic(BleAdapterService.READ_WRITE_SERVICE_SERVICE_UUID, BleAdapterService.WRITE_CHARACTERISTIC_UUID, wrt, true);
+                    byte[] bytes = service.writeCharacteristic(BleAdapterService.READ_WRITE_SERVICE_SERVICE_UUID, BleAdapterService.WRITE_CHARACTERISTIC_UUID, wrt, true);
                     Log.d(MAIN_CATEGORY_NAME, "end Test1 : " + Utility.byteArrayAsHexString(bytes));
                 }
             },
@@ -48,7 +47,8 @@ public class Test1 implements ITestForm {
                 public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub1-2");
 
-                    service.readCharacteristic(BleAdapterService.READ_WRITE_SERVICE_SERVICE_UUID, BleAdapterService.READ_CHARACTERISTIC_UUID);
+                    byte[] bytes = service.readCharacteristic(BleAdapterService.READ_WRITE_SERVICE_SERVICE_UUID, BleAdapterService.READ_CHARACTERISTIC_UUID);
+                    Log.d(MAIN_CATEGORY_NAME, "end Test1 : " + Utility.byteArrayAsHexString(bytes));
                 }
             },
             //sub1-3

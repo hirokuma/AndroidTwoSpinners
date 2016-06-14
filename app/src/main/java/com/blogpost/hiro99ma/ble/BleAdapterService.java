@@ -39,9 +39,14 @@ public class BleAdapterService extends Service {
     private CountDownLatch mThreadJoin = new CountDownLatch(1);
     private boolean mConnected = false;
     private BleCallback mBleCallback;
+    private Bundle mCallbackBundle = null;
 
     public BluetoothDevice getDevice() {
         return mDevice;
+    }
+    public void JoinCountStart() throws InterruptedException {
+        mThreadJoin = new CountDownLatch(1);
+        mThreadJoin.await();
     }
     public void JoinCountDown() { mThreadJoin.countDown(); }
     public void setBleCallback(BleCallback cb) {
@@ -52,14 +57,10 @@ public class BleAdapterService extends Service {
     public static final int GATT_CONNECTED = 1;
     public static final int GATT_DISCONNECT = 2;
     public static final int GATT_SERVICES_DISCOVERED = 3;
-    public static final int GATT_CHARACTERISTIC_READ = 4;
+    public static final int NOTIFICATION_RECEIVED = 4;
     public static final int GATT_REMOTE_RSSI = 5;
     public static final int MESSAGE = 6;
-    public static final int NOTIFICATION_RECEIVED = 7;
-    public static final int SIMULATED_NOTIFICATION_RECEIVED = 8;
-    public static final int GATT_CHARACTERISTIC_WRITTEN = 9;
-    public static final int GATT_DESCRIPTOR_WRITTEN = 10;
-    public static final int ERROR = 11;
+    public static final int ERROR = 7;
 
     // message parms
     public static final String PARCEL_DESCRIPTOR_UUID = "DESCRIPTOR_UUID";
@@ -129,9 +130,8 @@ public class BleAdapterService extends Service {
                 bundle.putString(PARCEL_CHARACTERISTIC_UUID, characteristic.getUuid().toString());
                 bundle.putString(PARCEL_SERVICE_UUID, characteristic.getService().getUuid().toString());
                 bundle.putByteArray(PARCEL_VALUE, characteristic.getValue());
-                Message msg = Message.obtain(mMessageHandler,GATT_CHARACTERISTIC_READ);
-                msg.setData(bundle);
-                msg.sendToTarget();
+                mCallbackBundle = bundle;
+                JoinCountDown();
             } else {
                 Log.w(TAG, "characteristic read err:" + status);
                 sendConsoleMessage("characteristic read err:" + status);
@@ -147,9 +147,8 @@ public class BleAdapterService extends Service {
                 bundle.putString(PARCEL_CHARACTERISTIC_UUID, characteristic.getUuid().toString());
                 bundle.putString(PARCEL_SERVICE_UUID, characteristic.getService().getUuid().toString());
                 bundle.putByteArray(PARCEL_VALUE, characteristic.getValue());
-                Message msg = Message.obtain(mMessageHandler, GATT_CHARACTERISTIC_WRITTEN);
-                msg.setData(bundle);
-                msg.sendToTarget();
+                mCallbackBundle = bundle;
+                JoinCountDown();
             } else {
                 Log.w(TAG, "characteristic write err:" + status);
                 reportError("characteristic write err:" + status);
@@ -178,9 +177,8 @@ public class BleAdapterService extends Service {
                 bundle.putString(PARCEL_CHARACTERISTIC_UUID, descriptor.getCharacteristic().getService().getUuid().toString());
                 bundle.putString(PARCEL_SERVICE_UUID, descriptor.getCharacteristic().getService().getUuid().toString());
                 bundle.putByteArray(PARCEL_VALUE, descriptor.getValue());
-                Message msg = Message.obtain(mMessageHandler, GATT_DESCRIPTOR_WRITTEN);
-                msg.setData(bundle);
-                msg.sendToTarget();
+                mCallbackBundle = bundle;
+                JoinCountDown();
             } else {
                 Log.w(TAG, "Descriptor write err:" + status);
                 reportError("Descriptor write err:" + status);
@@ -203,12 +201,10 @@ public class BleAdapterService extends Service {
     };
 
     private static class MessageHandler extends Handler {
-        private final WeakReference<BleAdapterService> mService;
         private byte[] mBytes;
 
-        public MessageHandler(BleAdapterService service) {
+        public MessageHandler() {
             super(Looper.getMainLooper());
-            mService = new WeakReference<BleAdapterService>(service);
         }
 
         public byte[] getBytes() { return mBytes; }
@@ -220,7 +216,6 @@ public class BleAdapterService extends Service {
             Bundle bundle;
             String service_uuid;
             String characteristic_uuid;
-            String descriptor_uuid;
 
             mBytes = new byte[] {};
             switch (msg.what) {
@@ -234,30 +229,6 @@ public class BleAdapterService extends Service {
                     break;
                 case BleAdapterService.GATT_SERVICES_DISCOVERED:
                     Log.d(TAG, "GATT_SERVICES_DISCOVERED");
-                    break;
-                case BleAdapterService.GATT_CHARACTERISTIC_READ:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    mBytes = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-                    Log.d(TAG, "GATT_CHARACTERISTIC_READ: " + characteristic_uuid + ":" + service_uuid + "  Value=" + Utility.byteArrayAsHexString(mBytes));
-                    mService.get().JoinCountDown();
-                    break;
-                case BleAdapterService.GATT_CHARACTERISTIC_WRITTEN:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    mBytes = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-                    Log.d(TAG, "GATT_CHARACTERISTIC_WRITTEN: " + characteristic_uuid + ":" + service_uuid + "  Value=" + Utility.byteArrayAsHexString(mBytes));
-                    mService.get().JoinCountDown();
-                    break;
-                case BleAdapterService.GATT_DESCRIPTOR_WRITTEN:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    descriptor_uuid = bundle.getString(BleAdapterService.PARCEL_DESCRIPTOR_UUID);
-                    Log.d(TAG, "GATT_DESCRIPTOR_WRITTEN: " + descriptor_uuid + "(" + characteristic_uuid + ":" + service_uuid + ")");
-                    mService.get().JoinCountDown();
                     break;
                 case BleAdapterService.NOTIFICATION_RECEIVED:
                     bundle = msg.getData();
@@ -320,7 +291,7 @@ public class BleAdapterService extends Service {
             return;
         }
 
-        mMessageHandler = new MessageHandler(this);
+        mMessageHandler = new MessageHandler();
     }
 
     // connect to the device
@@ -407,11 +378,15 @@ public class BleAdapterService extends Service {
         //完了待ち
         byte[] bytes;
         try {
-            mThreadJoin.await();
-            bytes = mMessageHandler.getBytes();
+            JoinCountStart();
+            String service_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+            String characteristic_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+            bytes = mCallbackBundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+            Log.d(TAG, "GATT_CHARACTERISTIC_WRITTEN: " + characteristic_uuid + ":" + service_uuid + "  Value=" + Utility.byteArrayAsHexString(bytes));
         } catch (InterruptedException e) {
             bytes = new byte[] {};
         }
+        mCallbackBundle = null;
 
         return bytes;
     }
@@ -446,80 +421,78 @@ public class BleAdapterService extends Service {
         //完了待ち
         byte[] bytes;
         try {
-            mThreadJoin.await();
-            bytes = mMessageHandler.getBytes();
+            JoinCountStart();
+            String service_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+            String characteristic_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+            bytes = mCallbackBundle.getByteArray(BleAdapterService.PARCEL_VALUE);
+            Log.d(TAG, "GATT_CHARACTERISTIC_READ: " + characteristic_uuid + ":" + service_uuid + "  Value=" + Utility.byteArrayAsHexString(bytes));
         } catch (InterruptedException e) {
             bytes = new byte[] {};
         }
+        mCallbackBundle = null;
 
         return bytes;
     }
 
     public boolean setNotificationsState(String serviceUuid, String characteristicUuid, boolean enabled) {
+        return setDescriptorState(serviceUuid, characteristicUuid, enabled, true);
+    }
+
+    public boolean setIndicationsState(String serviceUuid, String characteristicUuid, boolean enabled) {
+        return setDescriptorState(serviceUuid, characteristicUuid, enabled, false);
+    }
+
+    private boolean setDescriptorState(String serviceUuid, String characteristicUuid, boolean enabled, boolean notification) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "setNotificationsState: mBluetoothAdapter|mBluetoothGatt null");
-            sendConsoleMessage("setNotificationsState: mBluetoothAdapter|mBluetoothGatt null");
+            Log.w(TAG, "setDescriptorState: mBluetoothAdapter|mBluetoothGatt null");
+            sendConsoleMessage("setDescriptorState: mBluetoothAdapter|mBluetoothGatt null");
             return false;
         }
 
         BluetoothGattService gattService = mBluetoothGatt.getService(java.util.UUID.fromString(serviceUuid));
         if (gattService == null) {
-            Log.w(TAG, "setNotificationsState: gattService null");
-            sendConsoleMessage("setNotificationsState: gattService null");
+            Log.w(TAG, "setDescriptorState: gattService null");
+            sendConsoleMessage("setDescriptorState: gattService null");
             return false;
         }
         BluetoothGattCharacteristic gattChar = gattService.getCharacteristic(java.util.UUID.fromString(characteristicUuid));
         if (gattChar == null) {
-            sendConsoleMessage("setNotificationsState: gattChar null");
+            Log.w(TAG, "setDescriptorState: gattChar null");
+            sendConsoleMessage("setDescriptorState: gattChar null");
             return false;
         }
         mBluetoothGatt.setCharacteristicNotification(gattChar, enabled);
         // Enable remote notifications
         mDescriptor = gattChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
         Log.d(TAG, "Descriptor:" + mDescriptor.getUuid());
-        mDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        byte[] value;
+        if (notification) {
+            value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
+        }
+        else {
+            value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
+        }
+        mDescriptor.setValue(value);
 
         boolean ret = mBluetoothGatt.writeDescriptor(mDescriptor);
         if (!ret) {
-            Log.w(TAG, "setNotificationsState: writeDescriptor false");
-            sendConsoleMessage("setNotificationsState: writeDescriptor false");
+            Log.w(TAG, "setDescriptorState: writeDescriptor false");
+            sendConsoleMessage("setDescriptorState: writeDescriptor false");
             return false;
         }
         //完了待ち
         try {
-            mThreadJoin.await();
+            JoinCountStart();
+            String service_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
+            String characteristic_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
+            String descriptor_uuid = mCallbackBundle.getString(BleAdapterService.PARCEL_DESCRIPTOR_UUID);
+            Log.d(TAG, "GATT_DESCRIPTOR_WRITTEN: " + descriptor_uuid + "(" + characteristic_uuid + ":" + service_uuid + ")");
         } catch (InterruptedException e) {
             ret = false;
         }
+        mCallbackBundle = null;
 
         return ret;
-    }
-
-    public boolean setIndicationsState(String serviceUuid, String characteristicUuid, boolean enabled) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "setIndicationsState: mBluetoothAdapter|mBluetoothGatt null");
-            sendConsoleMessage("setIndicationsState: mBluetoothAdapter|mBluetoothGatt null");
-            return false;
-        }
-
-        BluetoothGattService gattService = mBluetoothGatt.getService(java.util.UUID.fromString(serviceUuid));
-        if (gattService == null) {
-            Log.w(TAG, "setIndicationsState: gattService null");
-            sendConsoleMessage("setIndicationsState: gattService null");
-            return false;
-        }
-        BluetoothGattCharacteristic gattChar = gattService.getCharacteristic(java.util.UUID.fromString(characteristicUuid));
-        if (gattChar == null) {
-            Log.w(TAG, "setIndicationsState: gattChar null");
-            sendConsoleMessage("setIndicationsState: gattChar null");
-            return false;
-        }
-        mBluetoothGatt.setCharacteristicNotification(gattChar, enabled);
-        // Enable remote notifications
-        mDescriptor = gattChar.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
-        Log.d(TAG, "Descriptor:" + mDescriptor.getUuid());
-        mDescriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
-        return mBluetoothGatt.writeDescriptor(mDescriptor);
     }
 
     public void readRemoteRssi() {

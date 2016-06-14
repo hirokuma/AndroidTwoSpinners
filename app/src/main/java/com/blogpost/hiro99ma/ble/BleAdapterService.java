@@ -36,7 +36,7 @@ public class BleAdapterService extends Service {
     private BluetoothDevice mDevice;
     private BluetoothGattDescriptor mDescriptor;
 
-    private CountDownLatch mThreadJoin = new CountDownLatch(1);
+    private CountDownLatch mThreadJoin;
     private boolean mConnected = false;
     private BleCallback mBleCallback;
     private Bundle mCallbackBundle = null;
@@ -48,7 +48,9 @@ public class BleAdapterService extends Service {
         mThreadJoin = new CountDownLatch(1);
         mThreadJoin.await();
     }
-    public void JoinCountDown() { mThreadJoin.countDown(); }
+    public void JoinCountDown() {
+        mThreadJoin.countDown();
+    }
     public void setBleCallback(BleCallback cb) {
         mBleCallback = cb;
     }

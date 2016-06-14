@@ -2,6 +2,8 @@ package com.blogpost.hiro99ma.twospinners;
 
 import android.util.Log;
 
+import com.blogpost.hiro99ma.ble.BleAdapterService;
+
 /**
  * Created on 2016/06/01.
  */
@@ -21,7 +23,7 @@ public class Test2 implements ITestForm {
                     return "sub2-1";
                 }
                 @Override
-                public void execute(MainActivity activity) {
+                public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub2-1");
                 }
             },
@@ -32,7 +34,7 @@ public class Test2 implements ITestForm {
                     return "sub2-2";
                 }
                 @Override
-                public void execute(MainActivity activity) {
+                public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub2-2");
                 }
             },

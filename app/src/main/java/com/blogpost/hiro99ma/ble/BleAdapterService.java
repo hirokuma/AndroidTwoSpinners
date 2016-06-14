@@ -21,6 +21,7 @@ import android.util.Log;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 public class BleAdapterService extends Service {
 
@@ -32,10 +33,12 @@ public class BleAdapterService extends Service {
     private Handler mActivityHandler = null;
     private BluetoothDevice mDevice;
     private BluetoothGattDescriptor mDescriptor;
+    private CountDownLatch mThreadJoin = new CountDownLatch(1);
 
     public BluetoothDevice getDevice() {
         return mDevice;
     }
+    public void JoinCountDown() { mThreadJoin.countDown(); }
 
     // messages sent back to activity
     public static final int GATT_CONNECTED = 1;
@@ -294,7 +297,22 @@ public class BleAdapterService extends Service {
             gattChar.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
         }
 
-        return mBluetoothGatt.writeCharacteristic(gattChar);
+        boolean ret = mBluetoothGatt.writeCharacteristic(gattChar);
+        if (!ret) {
+            Log.w(TAG, "writeCharacteristic: writeCharacteristic false");
+            sendConsoleMessage("writeCharacteristic: writeCharacteristic false");
+            return false;
+        }
+
+        //完了待ち
+        try {
+            mThreadJoin.await();
+            ret = true;
+        } catch (InterruptedException e) {
+            ret = false;
+        }
+
+        return ret;
     }
 
     // read value from service

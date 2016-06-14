@@ -6,6 +6,8 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.blogpost.hiro99ma.ble.BleAdapterService;
+
 import junit.framework.Test;
 
 /**
@@ -26,7 +28,7 @@ public class Test3 implements ITestForm {
                     return "sub3-1";
                 }
                 @Override
-                public void execute(MainActivity activity) {
+                public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub3-1");
                 }
             },
@@ -37,7 +39,7 @@ public class Test3 implements ITestForm {
                     return "sub3-2";
                 }
                 @Override
-                public void execute(MainActivity activity) {
+                public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub3-2");
                 }
             },
@@ -48,7 +50,7 @@ public class Test3 implements ITestForm {
                     return "sub3-3";
                 }
                 @Override
-                public void execute(MainActivity activity) {
+                public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "sub3-3");
                 }
             },
@@ -59,8 +61,7 @@ public class Test3 implements ITestForm {
                     return "sub3-4";
                 }
                 @Override
-                public void execute(MainActivity activity) {
-                    Toast.makeText(activity, "TEST sub3-4", Toast.LENGTH_LONG).show();
+                public void execute(BleAdapterService service) {
                     Log.d(MAIN_CATEGORY_NAME, "test sub3-4");
                 }
             },

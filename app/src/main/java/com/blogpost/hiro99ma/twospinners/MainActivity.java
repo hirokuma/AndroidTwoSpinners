@@ -27,12 +27,10 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.blogpost.hiro99ma.ble.BleAdapterService;
 import com.blogpost.hiro99ma.ble.PeripheralSelectDialogFragment;
-import com.blogpost.hiro99ma.ble.Utility;
 
 
 public class MainActivity extends Activity implements PeripheralSelectDialogFragment.BleScanResultListener {
@@ -40,7 +38,6 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
     private static final int REQUEST_LOCATION = 0;
     private static final int REQUEST_LOCATION_SERVICE = 1;
     private boolean permissions_granted = false;
-    private BluetoothAdapter mBluetoothAdapter = null;
     private BleAdapterService mBluetoothLeService;
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -55,10 +52,6 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             mBluetoothLeService = null;
         }
     };
-
-    public BleAdapterService getBleAdapterService() {
-        return mBluetoothLeService;
-    }
     //BLE
 
 
@@ -166,6 +159,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
                 Log.d("EXEC " + String.valueOf(mMainCategoryIdx + 1) + "-" + String.valueOf(mSubCategoryIdx + 1), "[" + mSpinSub.getSelectedItem().toString() + "]");
                 //mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this);
                 ExecTestCommand cmd = new ExecTestCommand();
+                //同時に1つしか動かさないけど、まずはこうしておこう
                 cmd.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void[])null);
             }
         });
@@ -206,6 +200,8 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         mButtonExec.setEnabled(ble_enabled);
     }
 
+
+    //テストの実行スレッド
     public class ExecTestCommand extends AsyncTask<Void, Void, Void> {
         @Override
         protected void onPreExecute() {
@@ -216,7 +212,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
         @Override
         protected Void doInBackground(Void... params) {
-            mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this);
+            mExecCommands[mMainCategoryIdx + 1][mSubCategoryIdx].execute(MainActivity.this.mBluetoothLeService);
             return null;
         }
 
@@ -253,10 +249,10 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
     private boolean onCreateBle(boolean gotoSetting) {
         // Initializes Bluetooth adapter.
         final BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
 
         // BLE enable ?
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             Toast.makeText(this, R.string.ble_disable_bluetooth, Toast.LENGTH_SHORT).show();
             if (gotoSetting) {
@@ -355,22 +351,16 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         }
     }
 
+
     //BLE
     /////////////////////////////////////////////////////////////////////////////////////////
-
-
     // Service message handler
-    private static Handler mMessageHandler = new Handler() {
+    private static class MessageHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             final String TAG = "service handler";
 
             Bundle bundle;
-            String service_uuid = "";
-            String characteristic_uuid = "";
-            String descriptor_uuid = "";
-            byte[] b = null;
-            TextView value_text = null;
 
             switch (msg.what) {
                 case BleAdapterService.GATT_CONNECTED:
@@ -384,68 +374,20 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
                 case BleAdapterService.GATT_SERVICES_DISCOVERED:
                     Log.d(TAG, "GATT_SERVICES_DISCOVERED");
                     break;
-                case BleAdapterService.GATT_CHARACTERISTIC_READ:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    Log.d(TAG, "GATT_CHARACTERISTIC_READ: " + characteristic_uuid + ":" + service_uuid);
-                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-                    Log.d(TAG, "  Value=" + Utility.byteArrayAsHexString(b));
-//                    value_text = (TextView) findViewByUUIDs(VIEW_TYPE_TEXT_VIEW, service_uuid, characteristic_uuid);
-//                    if (value_text != null) {
-//                        Log.d(Constants.TAG, "Handler found TextView for characteristic value");
-//                        value_text.setText(Utility.byteArrayAsHexString(b));
-//                    }
-//                    enableGattOpButtons();
-                    break;
-                case BleAdapterService.GATT_CHARACTERISTIC_WRITTEN:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    Log.d(TAG, "GATT_CHARACTERISTIC_WRITTEN: " + characteristic_uuid + ":" + service_uuid);
-                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-                    Log.d(TAG, "  Value=" + Utility.byteArrayAsHexString(b));
-//                    enableGattOpButtons();
-                    break;
-                case BleAdapterService.GATT_DESCRIPTOR_WRITTEN:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    descriptor_uuid = bundle.getString(BleAdapterService.PARCEL_DESCRIPTOR_UUID);
-                    Log.d(TAG, "GATT_DESCRIPTOR_WRITTEN: " + descriptor_uuid + "(" + characteristic_uuid + ":" + service_uuid + ")");
-//                    enableGattOpButtons();
-                    break;
-                case BleAdapterService.NOTIFICATION_RECEIVED:
-                    bundle = msg.getData();
-                    service_uuid = bundle.getString(BleAdapterService.PARCEL_SERVICE_UUID);
-                    characteristic_uuid = bundle.getString(BleAdapterService.PARCEL_CHARACTERISTIC_UUID);
-                    Log.d(TAG, "NOTIFICATION_RECEIVED: " + characteristic_uuid + ":" + service_uuid);
-                    b = bundle.getByteArray(BleAdapterService.PARCEL_VALUE);
-                    Log.d(TAG, "  Value=" + Utility.byteArrayAsHexString(b));
-//                    value_text = (TextView) findViewByUUIDs(VIEW_TYPE_TEXT_VIEW, service_uuid, characteristic_uuid);
-//                    if (value_text != null) {
-//                        Log.d(Constants.TAG, "Handler found TextView for characteristic value");
-//                        value_text.setText(Utility.byteArrayAsHexString(b));
-//                    }
-                    break;
-                case BleAdapterService.GATT_REMOTE_RSSI:
-//                    bundle = msg.getData();
-//                    int rssi = bundle.getInt(BleAdapterService.PARCEL_RSSI);
-//                    PeripheralControlActivity.this.updateRssi(rssi);
-                    break;
                 case BleAdapterService.MESSAGE:
                     bundle = msg.getData();
                     String text = bundle.getString(BleAdapterService.PARCEL_TEXT);
                     Log.d(TAG, "MESSAGE: " + text);
-//                    showMsg(text);
                     break;
                 case BleAdapterService.ERROR:
                     bundle = msg.getData();
                     String error = bundle.getString(BleAdapterService.PARCEL_ERROR);
                     Log.d(TAG, "ERROR: " + error);
-//                    showMsg(error);
-//                    enableGattOpButtons();
+                    break;
+                default:
+                    Log.d(TAG, "message.what = " + msg.what);
             }
         }
-    };
+    }
+    MessageHandler mMessageHandler = new MessageHandler();
 }

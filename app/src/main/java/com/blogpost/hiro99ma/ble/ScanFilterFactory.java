@@ -3,7 +3,7 @@ package com.blogpost.hiro99ma.ble;
 import android.bluetooth.le.ScanFilter;
 
 /**
- * Created by mwoolley on 20/11/2015.
+ * Created on 20/11/2015.
  */
 public class ScanFilterFactory {
     private static ScanFilterFactory instance;

@@ -15,9 +15,7 @@ import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -27,6 +25,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.blogpost.hiro99ma.ble.BleAdapterService;
@@ -44,12 +43,57 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         public void onServiceConnected(ComponentName name, IBinder service) {
             //BLE接続の通知を受けるので、その前に設定する
             mBluetoothLeService = ((BleAdapterService.LocalBinder) service).getService();
-            mBluetoothLeService.setActivityHandler(mMessageHandler);
+            mBluetoothLeService.setBleCallback(mBleCallback);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             mBluetoothLeService = null;
+        }
+    };
+    private BleAdapterService.BleCallback mBleCallback = new BleAdapterService.BleCallback() {
+        @Override
+        public void onBleConnected() {
+            Log.d(TAG, "接続しました");
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mButtonScan.setEnabled(true);
+                            mButtonScan.setText(R.string.connected);
+                            mButtonExec.setEnabled(true);
+                        }
+                    });
+                }
+            }).start();
+        }
+
+        @Override
+        public void onBleDisconnected() {
+            Log.d(TAG, "切断しました");
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mButtonScan.setEnabled(true);
+                            mButtonScan.setText(R.string.disconnected);
+                            mButtonExec.setEnabled(false);
+                        }
+                    });
+                }
+            }).start();
+        }
+
+        @Override
+        public void onBleNotification(Bundle bundle) {
+            String text = bundle.getString(BleAdapterService.PARCEL_TEXT);
+            Log.d(TAG, "Notification:" + text);
+            TextView tv = (TextView)findViewById(R.id.text_log);
+            tv.setText(tv.getText() + "\r\n" + text);
         }
     };
     //BLE
@@ -171,17 +215,22 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             public void onClick(View v) {
                 //start BLE Scan
                 if (permissions_granted) {
-                    PeripheralSelectDialogFragment dlg = PeripheralSelectDialogFragment.newInstance();
-                    dlg.show(getFragmentManager(), "scan");
+                    if (!mBluetoothLeService.isConnected()) {
+                        //切断中
+                        PeripheralSelectDialogFragment dlg = PeripheralSelectDialogFragment.newInstance();
+                        dlg.show(getFragmentManager(), "scan");
+                    } else {
+                        //接続中
+                        mBluetoothLeService.disconnect();
+                        //押せなくする
+                        mButtonScan.setEnabled(false);
+                    }
                 }
             }
         });
         //BLE
-
-        if (!ble_enabled) {
-            mButtonScan.setEnabled(false);
-            mButtonExec.setEnabled(false);
-        }
+        mButtonScan.setEnabled(ble_enabled);
+        mButtonExec.setEnabled(false);
     }
 
     @Override
@@ -197,6 +246,12 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
         boolean ble_enabled = onCreateBle(false);
         mButtonScan.setEnabled(ble_enabled);
+        if (mBluetoothLeService != null) {
+            ble_enabled &= mBluetoothLeService.isConnected();
+        }
+        else {
+            ble_enabled = false;
+        }
         mButtonExec.setEnabled(ble_enabled);
     }
 
@@ -206,8 +261,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         @Override
         protected void onPreExecute() {
             Log.d("ExecTestCommand", "onPreExecute");
-            Button buttonExec = (Button) findViewById(R.id.button_exec);
-            buttonExec.setEnabled(false);
+            mButtonExec.setEnabled(false);
         }
 
         @Override
@@ -224,8 +278,7 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
         @Override
         protected void onPostExecute(Void result) {
             Log.d("ExecTestCommand", "onPostExecute");
-            Button buttonExec = (Button) findViewById(R.id.button_exec);
-            buttonExec.setEnabled(true);
+            mButtonExec.setEnabled(true);
         }
     }
 
@@ -236,7 +289,9 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
 
         if (mBluetoothLeService != null) {
             if (mBluetoothLeService.connect(device.getAddress())) {
-                Log.d("Activity", "onScanResult : connect !");
+                //押せなくする
+                mButtonScan.setEnabled(false);
+                mButtonScan.setText(R.string.connecting);
             } else {
                 Log.d("Activity", "onScanResult : fail connect");
             }
@@ -350,44 +405,4 @@ public class MainActivity extends Activity implements PeripheralSelectDialogFrag
             Log.d("onActivityResult", "resultCode=" + resultCode);
         }
     }
-
-
-    //BLE
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // Service message handler
-    private static class MessageHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            final String TAG = "service handler";
-
-            Bundle bundle;
-
-            switch (msg.what) {
-                case BleAdapterService.GATT_CONNECTED:
-                    Log.d(TAG, "GATT_CONNECTED");
-                    //UIを有効にするなどの処理(接続ボタンがあれば無効にする)
-                    break;
-                case BleAdapterService.GATT_DISCONNECT:
-                    Log.d(TAG, "GATT_DISCONNECT");
-                    //UIを無効にするなどの処理(接続ボタンがあれば有効にする)
-                    break;
-                case BleAdapterService.GATT_SERVICES_DISCOVERED:
-                    Log.d(TAG, "GATT_SERVICES_DISCOVERED");
-                    break;
-                case BleAdapterService.MESSAGE:
-                    bundle = msg.getData();
-                    String text = bundle.getString(BleAdapterService.PARCEL_TEXT);
-                    Log.d(TAG, "MESSAGE: " + text);
-                    break;
-                case BleAdapterService.ERROR:
-                    bundle = msg.getData();
-                    String error = bundle.getString(BleAdapterService.PARCEL_ERROR);
-                    Log.d(TAG, "ERROR: " + error);
-                    break;
-                default:
-                    Log.d(TAG, "message.what = " + msg.what);
-            }
-        }
-    }
-    MessageHandler mMessageHandler = new MessageHandler();
 }

@@ -47,14 +47,13 @@
         <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Scan"
+            android:text="@string/disconnected"
             android:id="@+id/button_scan"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:text="New Text"
-            android:id="@+id/textView3"
+            android:id="@+id/text_log"
             android:background="#d8f1fd"/>
     </LinearLayout>
 </RelativeLayout>
